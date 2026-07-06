@@ -65,4 +65,8 @@ var (
 
 	lineCursorStyle = lipgloss.NewStyle().
 			Background(lipgloss.Color("#444444"))
+
+	sidebarDirStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#666666")).
+			PaddingLeft(1)
 )
