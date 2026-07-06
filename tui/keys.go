@@ -7,8 +7,12 @@ const (
 	keyUpAlt   = "k"
 	keyDown    = "down"
 	keyDownAlt = "j"
+	keyNext    = "n"
+	keyPrev    = "p"
+	keyTop     = "g"
+	keyBottom  = "G"
+	keyHelp    = "?"
 	keyEnter   = "enter"
 	keyBack    = "esc"
-	keyHelp    = "?"
 	keyRefresh = "r"
 )
