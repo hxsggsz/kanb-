@@ -15,7 +15,7 @@ func Diff(repoPath string, args []string) ([]FileDiff, error) {
 	out, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("git diff failed: %s", string(exitErr.Stderr))
+			return nil, fmt.Errorf("git diff failed: %s: %w", string(exitErr.Stderr), exitErr)
 		}
 		return nil, fmt.Errorf("git diff: %w", err)
 	}
