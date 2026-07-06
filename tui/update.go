@@ -53,32 +53,32 @@ func (m *model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 func (m *model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case keyUp, keyUpAlt:
-		if m.scroll > 0 {
-			m.scroll--
+		if m.cursorLine > 0 {
+			m.cursorLine--
 		}
 
 	case keyDown, keyDownAlt:
-		if m.scroll < m.maxScroll() {
-			m.scroll++
+		if m.cursorLine < m.totalLines()-1 {
+			m.cursorLine++
 		}
 
 	case keyNext:
 		if m.fileIdx < len(m.diffs)-1 {
 			m.fileIdx++
-			m.scroll = 0
+			m.cursorLine = 0
 		}
 
 	case keyPrev:
 		if m.fileIdx > 0 {
 			m.fileIdx--
-			m.scroll = 0
+			m.cursorLine = 0
 		}
 
 	case keyTop:
-		m.scroll = 0
+		m.cursorLine = 0
 
 	case keyBottom:
-		m.scroll = m.maxScroll()
+		m.cursorLine = m.totalLines() - 1
 
 	case keyHelp:
 		m.screen = screenHelp

@@ -21,8 +21,7 @@ func (m *model) View() tea.View {
 	}
 	if m.err != nil {
 		v.SetContent(m.errorView())
-		return v
-	}
+		return v }
 	if len(m.diffs) == 0 {
 		v.SetContent(m.emptyView())
 		return v
@@ -53,25 +52,19 @@ func (m *model) emptyView() string {
 func (m *model) diffView() string {
 	sideWidth := sidebarDefaultWidth
 	if m.width > 0 {
-		sideWidth = m.width / sidebarDenominator
-		if sideWidth < sidebarMinWidth {
-			sideWidth = sidebarMinWidth
-		}
-		if sideWidth > sidebarMaxWidth {
-			sideWidth = sidebarMaxWidth
-		}
+		sideWidth = min(max(m.width/sidebarDenominator, sidebarMinWidth), sidebarMaxWidth)
 	}
 
-	maxFiles := m.height - (statusBarHeight + borderHeight)
-	if maxFiles < 1 {
-		maxFiles = 1
+	maxFiles := max(m.height - (statusBarHeight + borderHeight), 1)
+
+	start := 0
+	if m.fileIdx >= maxFiles {
+		start = m.fileIdx - maxFiles + 1
 	}
 
 	var sb strings.Builder
-	for i, f := range m.diffs {
-		if i >= maxFiles {
-			break
-		}
+	for i := start; i < len(m.diffs) && i-start < maxFiles; i++ {
+		f := m.diffs[i]
 		statusColor := statusColorFor(f.Status)
 		label := fmt.Sprintf("%s %s", statusColor.Render(f.Status), f.NewPath)
 		if i == m.fileIdx {
@@ -80,34 +73,82 @@ func (m *model) diffView() string {
 			sb.WriteString(sidebarFile.Render("  "+label) + "\n")
 		}
 	}
-	sidebar := sidebarStyle.Width(sideWidth).Render(sb.String())
+	sidebarContent := strings.TrimRight(sb.String(), "\n")
+	sidebar := sidebarStyle.Width(sideWidth).Render(sidebarContent)
 
-	panelWidth := m.width - sideWidth - panelBorderWidth
-	if panelWidth < panelMinWidth {
-		panelWidth = panelMinWidth
-	}
+	sidebarHeight := strings.Count(sidebarContent, "\n") + 1
+	contentVis := max(m.height - sidebarHeight - 2, 1)
+
+	panelWidth := max(m.width - sideWidth - panelBorderWidth, panelMinWidth)
 
 	file := m.diffs[m.fileIdx]
-	content := m.renderFile(file, panelWidth)
+	content := m.renderFile(file, panelWidth, contentVis)
 
+	total := m.totalLines()
+	cursorLine := m.cursorLine + 1
 	statusBar := statusBarStyle.Width(m.width).Render(
-		fmt.Sprintf(" %d/%d  •  ↑↓ scroll  •  n/p file  •  g/G top/bottom  •  ? help  •  q quit",
-			m.fileIdx+1, len(m.diffs)))
+		fmt.Sprintf(" %d/%d  •  Ln %d/%d  •  ↑↓ cursor  •  n/p file  •  g/G top/bottom  •  ? help  •  q quit",
+			m.fileIdx+1, len(m.diffs), cursorLine, total))
 
 	return fmt.Sprintf("%s%s\n%s", sidebar, content, statusBar)
 }
 
-func (m *model) renderFile(f git.FileDiff, width int) string {
+func (m *model) renderFile(f git.FileDiff, width int, vis int) string {
+	total := m.totalLines()
+	if total == 0 {
+		return ""
+	}
+
+	if m.cursorLine >= total {
+		m.cursorLine = total - 1
+	}
+
+	const scrollMargin = 8
+
+	if vis <= 0 {
+		m.scroll = 0
+		return ""
+	}
+
+	if vis >= total {
+		m.scroll = 0
+	} else {
+		sm := scrollMargin
+		if sm > vis/2 {
+			sm = max(1, vis/2)
+		}
+		maxScroll := total - vis
+		if m.cursorLine < m.scroll+sm {
+			m.scroll = max(0, m.cursorLine-sm)
+		}
+		if m.cursorLine >= m.scroll+vis-sm {
+			m.scroll = min(m.cursorLine-vis+sm+1, maxScroll)
+		}
+		if m.scroll > maxScroll {
+			m.scroll = maxScroll
+		}
+	}
+
 	var lines []string
+	lineIdx := 0
 	for _, h := range f.Hunks {
-		lines = append(lines, hunkHeaderStyle.Render(h.Header))
+		cursor := lineIdx == m.cursorLine
+		line := hunkHeaderStyle.Render(h.Header)
+		if cursor {
+			line = lineCursorStyle.Width(width).Render(line)
+		}
+		lines = append(lines, line)
+		lineIdx++
+
 		for _, ln := range h.Lines {
-			lines = append(lines, formatLine(ln, width))
+			cursor := lineIdx == m.cursorLine
+			lines = append(lines, formatLine(ln, width, cursor))
+			lineIdx++
 		}
 	}
 
 	start := m.scroll
-	end := start + m.visibleLines()
+	end := start + vis
 	if start >= len(lines) {
 		start = 0
 	}
@@ -115,14 +156,10 @@ func (m *model) renderFile(f git.FileDiff, width int) string {
 		end = len(lines)
 	}
 
-	if start >= end {
-		return ""
-	}
-
 	return strings.Join(lines[start:end], "\n")
 }
 
-func formatLine(ln git.Line, width int) string {
+func formatLine(ln git.Line, width int, cursor bool) string {
 	oldStr := ""
 	newStr := ""
 	if ln.OldLineNum > 0 {
@@ -134,15 +171,35 @@ func formatLine(ln git.Line, width int) string {
 
 	lineNumFmt := fmt.Sprintf("%%%ds %%%ds", lineNumColWidth, lineNumColWidth)
 	lineNum := fmt.Sprintf(lineNumFmt, oldStr, newStr)
-	prefix := " "
-	style := lineContextStyle
 
+	prefix := " "
 	switch ln.Type {
 	case git.LineAdded:
 		prefix = "+"
-		style = lineAddedStyle
 	case git.LineDeleted:
 		prefix = "-"
+	}
+
+	if cursor {
+		line := fmt.Sprintf("%s %s %s", lineNum, prefix, ln.Content)
+		if len(line) > width {
+			line = line[:width]
+		}
+		style := lipgloss.NewStyle().Background(lipgloss.Color("#444444"))
+		switch ln.Type {
+		case git.LineAdded:
+			style = style.Foreground(lipgloss.Color("#00FF00"))
+		case git.LineDeleted:
+			style = style.Foreground(lipgloss.Color("#FF0000"))
+		}
+		return style.Render(line)
+	}
+
+	style := lineContextStyle
+	switch ln.Type {
+	case git.LineAdded:
+		style = lineAddedStyle
+	case git.LineDeleted:
 		style = lineDeletedStyle
 	}
 
@@ -166,10 +223,10 @@ func statusColorFor(status string) lipgloss.Style {
 }
 
 func (m *model) helpView() string {
-	content := " Keybindings\n\n"
+	var content strings.Builder; content.WriteString(" Keybindings\n\n")
 	bindings := []struct{ key, desc string }{
-		{"↑/k", "Scroll up"},
-		{"↓/j", "Scroll down"},
+		{"↑/k", "Cursor up"},
+		{"↓/j", "Cursor down"},
 		{"n", "Next file"},
 		{"p", "Previous file"},
 		{"g", "Go to top"},
@@ -178,7 +235,7 @@ func (m *model) helpView() string {
 		{"q/ctrl+c", "Quit"},
 	}
 	for _, b := range bindings {
-		content += fmt.Sprintf("  %-12s %s\n", b.key, b.desc)
+		content .WriteString(fmt.Sprintf("  %-12s %s\n", b.key, b.desc))
 	}
-	return helpStyle.Render(content)
+	return helpStyle.Render(content.String())
 }

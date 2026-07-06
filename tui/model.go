@@ -29,17 +29,30 @@ const (
 )
 
 type model struct {
-	diffs   []git.FileDiff
-	fileIdx int
-	scroll  int
-	screen  screen
-	loading bool
-	err     error
-	width   int
-	height  int
+	diffs      []git.FileDiff
+	fileIdx    int
+	scroll     int
+	cursorLine int
+	screen     screen
+	loading    bool
+	err        error
+	width      int
+	height     int
 
 	repoPath string
 	gitArgs  []string
+}
+
+func (m *model) totalLines() int {
+	if len(m.diffs) == 0 {
+		return 0
+	}
+	f := m.diffs[m.fileIdx]
+	total := 0
+	for _, h := range f.Hunks {
+		total += hunkHeaderLines + len(h.Lines)
+	}
+	return total
 }
 
 func New(repoPath string, gitArgs []string) tea.Model {
@@ -56,20 +69,4 @@ func (m *model) Init() tea.Cmd {
 
 func (m *model) visibleLines() int {
 	return m.height - (statusBarHeight + borderHeight)
-}
-
-func (m *model) maxScroll() int {
-	if len(m.diffs) == 0 {
-		return 0
-	}
-	f := m.diffs[m.fileIdx]
-	totalLines := 0
-	for _, h := range f.Hunks {
-		totalLines += hunkHeaderLines + len(h.Lines)
-	}
-	max := totalLines - m.visibleLines()
-	if max < 0 {
-		return 0
-	}
-	return max
 }

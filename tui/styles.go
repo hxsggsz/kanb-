@@ -6,6 +6,9 @@ var (
 	sidebarStyle = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder()).
 			BorderRight(true).
+			BorderLeft(false).
+			BorderTop(false).
+			BorderBottom(false).
 			Padding(0, 1).
 			Width(30)
 
@@ -59,4 +62,7 @@ var (
 	loadingStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#7D56F4")).
 			Padding(2, 4)
+
+	lineCursorStyle = lipgloss.NewStyle().
+			Background(lipgloss.Color("#444444"))
 )
