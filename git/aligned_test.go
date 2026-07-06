@@ -79,13 +79,13 @@ func TestUnifiedAlignerMixedChanges(t *testing.T) {
 	}}
 	a := &UnifiedAligner{}
 	result := a.Align(hunks)
-	if len(result[0].Lines) != 4 {
-		t.Fatalf("expected 4 lines, got %d", len(result[0].Lines))
+	if len(result[0].Lines) != 3 {
+		t.Fatalf("expected 3 lines, got %d", len(result[0].Lines))
 	}
-	if result[0].Lines[1].OldContent != "old" || result[0].Lines[1].NewContent != "" {
-		t.Errorf("line 1: expected old='old' new='', got old=%q new=%q", result[0].Lines[1].OldContent, result[0].Lines[1].NewContent)
+	if result[0].Lines[1].Kind != KindModified {
+		t.Fatalf("expected line 0 to be KindModified, got %v", result[0].Lines[1].Kind)
 	}
-	if result[0].Lines[2].OldContent != "" || result[0].Lines[2].NewContent != "new" {
-		t.Errorf("line 2: expected old='' new='new', got old=%q new=%q", result[0].Lines[2].OldContent, result[0].Lines[2].NewContent)
+	if result[0].Lines[1].OldContent != "old" || result[0].Lines[1].NewContent != "new" {
+		t.Errorf("line 1: expected old='old' new='new', got old=%q new=%q", result[0].Lines[1].OldContent, result[0].Lines[1].NewContent)
 	}
 }

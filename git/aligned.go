@@ -6,6 +6,7 @@ const (
 	KindContext LineKind = iota
 	KindAdded
 	KindDeleted
+	KindModified
 )
 
 type AlignedLine struct {
@@ -39,24 +40,56 @@ type UnifiedAligner struct{}
 func (a *UnifiedAligner) Align(hunks []Hunk) []AlignedHunk {
 	result := make([]AlignedHunk, len(hunks))
 	for i, h := range hunks {
-		ah := AlignedHunk{OldStart: h.OldStart, NewStart: h.NewStart, Header: h.Header, Lines: make([]AlignedLine, 0, len(h.Lines))}
+		ah := AlignedHunk{OldStart: h.OldStart, NewStart: h.NewStart, Header: h.Header}
+		var pending []Line
 		for _, ln := range h.Lines {
-			al := AlignedLine{OldLineNum: ln.OldLineNum, NewLineNum: ln.NewLineNum}
 			switch ln.Type {
 			case LineContext:
-				al.Kind = KindContext
-				al.OldContent = ln.Content
-				al.NewContent = ln.Content
+				ah.Lines = append(ah.Lines, flushDeleted(pending)...)
+				pending = nil
+				ah.Lines = append(ah.Lines, AlignedLine{
+					OldLineNum: ln.OldLineNum,
+					NewLineNum: ln.NewLineNum,
+					Kind:       KindContext,
+					OldContent: ln.Content,
+					NewContent: ln.Content,
+				})
 			case LineDeleted:
-				al.Kind = KindDeleted
-				al.OldContent = ln.Content
+				pending = append(pending, ln)
 			case LineAdded:
-				al.Kind = KindAdded
-				al.NewContent = ln.Content
+				if len(pending) > 0 {
+					d := pending[0]
+					pending = pending[1:]
+					ah.Lines = append(ah.Lines, AlignedLine{
+						OldLineNum: d.OldLineNum,
+						NewLineNum: ln.NewLineNum,
+						Kind:       KindModified,
+						OldContent: d.Content,
+						NewContent: ln.Content,
+					})
+				} else {
+					ah.Lines = append(ah.Lines, AlignedLine{
+						NewLineNum: ln.NewLineNum,
+						Kind:       KindAdded,
+						NewContent: ln.Content,
+					})
+				}
 			}
-			ah.Lines = append(ah.Lines, al)
 		}
+		ah.Lines = append(ah.Lines, flushDeleted(pending)...)
 		result[i] = ah
 	}
 	return result
+}
+
+func flushDeleted(pending []Line) []AlignedLine {
+	out := make([]AlignedLine, len(pending))
+	for i, d := range pending {
+		out[i] = AlignedLine{
+			OldLineNum: d.OldLineNum,
+			Kind:       KindDeleted,
+			OldContent: d.Content,
+		}
+	}
+	return out
 }

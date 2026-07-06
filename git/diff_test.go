@@ -50,8 +50,11 @@ index abc..def 100644
 	if len(result[0].Hunks) != 1 {
 		t.Fatalf("expected 1 hunk, got %d", len(result[0].Hunks))
 	}
-	if len(result[0].Hunks[0].Lines) != 2 {
-		t.Fatalf("expected 2 aligned lines, got %d", len(result[0].Hunks[0].Lines))
+	if len(result[0].Hunks[0].Lines) != 1 {
+		t.Fatalf("expected 1 aligned line, got %d", len(result[0].Hunks[0].Lines))
+	}
+	if result[0].Hunks[0].Lines[0].Kind != KindModified {
+		t.Fatalf("expected KindModified, got %v", result[0].Hunks[0].Lines[0].Kind)
 	}
 }
 
@@ -75,8 +78,11 @@ func TestDiffCommandViaExecute(t *testing.T) {
 	if len(result) != 1 {
 		t.Fatalf("expected 1 file, got %d", len(result))
 	}
-	if len(result[0].Hunks[0].Lines) != 2 {
-		t.Fatalf("expected 2 aligned lines, got %d", len(result[0].Hunks[0].Lines))
+	if len(result[0].Hunks[0].Lines) != 1 {
+		t.Fatalf("expected 1 aligned line, got %d", len(result[0].Hunks[0].Lines))
+	}
+	if result[0].Hunks[0].Lines[0].Kind != KindModified {
+		t.Fatalf("expected KindModified, got %v", result[0].Hunks[0].Lines[0].Kind)
 	}
 }
 

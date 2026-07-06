@@ -130,6 +130,8 @@ func (m *model) renderFile(f git.SideBySideDiff, width int, vis int) string {
 		}
 	}
 
+	colWidth := (width - 3) / 2
+
 	var lines []string
 	lineIdx := 0
 	for _, h := range f.Hunks {
@@ -143,7 +145,7 @@ func (m *model) renderFile(f git.SideBySideDiff, width int, vis int) string {
 
 		for _, ln := range h.Lines {
 			cursor := lineIdx == m.cursorLine
-			lines = append(lines, formatLine(ln, width, cursor))
+			lines = append(lines, formatAlignedLine(ln, colWidth, cursor))
 			lineIdx++
 		}
 	}
@@ -160,59 +162,66 @@ func (m *model) renderFile(f git.SideBySideDiff, width int, vis int) string {
 	return strings.Join(lines[start:end], "\n")
 }
 
-func formatLine(ln git.AlignedLine, width int, cursor bool) string {
-	oldStr := ""
-	newStr := ""
+func formatAlignedLine(ln git.AlignedLine, colWidth int, cursor bool) string {
+	oldNum := ""
 	if ln.OldLineNum > 0 {
-		oldStr = strconv.Itoa(ln.OldLineNum)
+		oldNum = strconv.Itoa(ln.OldLineNum)
 	}
+	newNum := ""
 	if ln.NewLineNum > 0 {
-		newStr = strconv.Itoa(ln.NewLineNum)
+		newNum = strconv.Itoa(ln.NewLineNum)
 	}
 
-	lineNumFmt := fmt.Sprintf("%%%ds %%%ds", lineNumColWidth, lineNumColWidth)
-	lineNum := fmt.Sprintf(lineNumFmt, oldStr, newStr)
-
-	prefix := " "
-	content := ln.OldContent
-	switch ln.Kind {
-	case git.KindAdded:
-		prefix = "+"
-		content = ln.NewContent
-	case git.KindDeleted:
-		prefix = "-"
-		content = ln.OldContent
+	leftPrefix := " "
+	leftContent := ""
+	if ln.Kind == git.KindContext || ln.Kind == git.KindDeleted || ln.Kind == git.KindModified {
+		leftContent = ln.OldContent
+	}
+	if ln.Kind == git.KindDeleted || ln.Kind == git.KindModified {
+		leftPrefix = "-"
 	}
 
+	rightPrefix := " "
+	rightContent := ""
+	if ln.Kind == git.KindContext || ln.Kind == git.KindAdded || ln.Kind == git.KindModified {
+		rightContent = ln.NewContent
+	}
+	if ln.Kind == git.KindAdded || ln.Kind == git.KindModified {
+		rightPrefix = "+"
+	}
+
+	leftLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, oldNum, leftPrefix, leftContent)
+	rightLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, newNum, rightPrefix, rightContent)
+
+	var leftStyle, rightStyle lipgloss.Style
 	if cursor {
-		line := fmt.Sprintf("%s %s %s", lineNum, prefix, content)
-		if len(line) > width {
-			line = line[:width]
-		}
-		style := lipgloss.NewStyle().Background(lipgloss.Color("#444444"))
+		base := lipgloss.NewStyle().Background(lipgloss.Color("#444444"))
+		leftStyle = base
+		rightStyle = base
 		switch ln.Kind {
 		case git.KindAdded:
-			style = style.Foreground(lipgloss.Color("#00FF00"))
+			rightStyle = base.Foreground(lipgloss.Color("#00FF00"))
 		case git.KindDeleted:
-			style = style.Foreground(lipgloss.Color("#FF0000"))
+			leftStyle = base.Foreground(lipgloss.Color("#FF0000"))
+		case git.KindModified:
+			leftStyle = base.Foreground(lipgloss.Color("#FF0000"))
+			rightStyle = base.Foreground(lipgloss.Color("#00FF00"))
 		}
-		return style.Render(line)
+	} else {
+		leftStyle = lineContextStyle
+		rightStyle = lineContextStyle
+		switch ln.Kind {
+		case git.KindDeleted:
+			leftStyle = lineDeletedStyle
+		case git.KindAdded:
+			rightStyle = lineAddedStyle
+		case git.KindModified:
+			leftStyle = lineDeletedStyle
+			rightStyle = lineAddedStyle
+		}
 	}
 
-	style := lineContextStyle
-	switch ln.Kind {
-	case git.KindAdded:
-		style = lineAddedStyle
-	case git.KindDeleted:
-		style = lineDeletedStyle
-	}
-
-	line := fmt.Sprintf("%s %s %s", lineNumStyle.Render(lineNum), prefix, content)
-	if len(line) > width {
-		line = line[:width]
-	}
-
-	return style.Render(line)
+	return leftStyle.Width(colWidth).Render(leftLine) + " │ " + rightStyle.Width(colWidth).Render(rightLine)
 }
 
 func statusColorFor(status string) lipgloss.Style {
