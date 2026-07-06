@@ -6,32 +6,32 @@ import (
 
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
 		return m, nil
 
+	case diffMsg:
+		m.loading = false
+		if msg.err != nil {
+			m.err = msg.err
+		} else {
+			m.diffs = msg.diffs
+		}
+		return m, nil
+
 	case tea.KeyPressMsg:
 		return m.handleKeyPress(msg)
-
-	case statusMsg:
-		m.loading = false
-		return m, nil
-
-	case errMsg:
-		m.err = msg
-		m.loading = false
-		return m, nil
-
-	case tickMsg:
-		return m, nil
 	}
 
 	return m, nil
 }
 
 func (m *model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if m.err != nil {
+		return m, tea.Quit
+	}
+
 	switch msg.String() {
 	case keyQuit, keyQuitAlt:
 		return m, tea.Quit
@@ -41,19 +41,48 @@ func (m *model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case screenDiff:
 		return m.handleDiffKeys(msg)
 	case screenHelp:
-		return m.handleHelpKeys(msg)
+		if msg.String() == keyHelp || msg.String() == keyBack {
+			m.screen = screenDiff
+		}
+		return m, nil
 	}
 
 	return m, nil
 }
 
 func (m *model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	return m, nil
-}
+	switch msg.String() {
+	case keyUp, keyUpAlt:
+		if m.scroll > 0 {
+			m.scroll--
+		}
 
-func (m *model) handleHelpKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	if msg.String() == keyBack || msg.String() == keyHelp {
-		m.screen = screenDiff
+	case keyDown, keyDownAlt:
+		if m.scroll < m.maxScroll() {
+			m.scroll++
+		}
+
+	case keyNext:
+		if m.fileIdx < len(m.diffs)-1 {
+			m.fileIdx++
+			m.scroll = 0
+		}
+
+	case keyPrev:
+		if m.fileIdx > 0 {
+			m.fileIdx--
+			m.scroll = 0
+		}
+
+	case keyTop:
+		m.scroll = 0
+
+	case keyBottom:
+		m.scroll = m.maxScroll()
+
+	case keyHelp:
+		m.screen = screenHelp
 	}
+
 	return m, nil
 }
