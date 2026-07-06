@@ -29,16 +29,6 @@ var (
 	sidebarStatusModified = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#FFA500"))
 
-	lineAddedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#00FF00")).
-			Background(lipgloss.Color("#003300"))
-
-	lineDeletedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FF0000")).
-			Background(lipgloss.Color("#330000"))
-
-	lineContextStyle = lipgloss.NewStyle()
-
 	lineNumStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#888888"))
 

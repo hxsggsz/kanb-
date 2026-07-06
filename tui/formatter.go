@@ -8,6 +8,8 @@ import (
 	"kanba/git"
 )
 
+var emptyStyle = lipgloss.NewStyle()
+
 type LineFormatter interface {
 	LeftContent(ln git.AlignedLine) string
 	RightContent(ln git.AlignedLine) string
@@ -23,18 +25,8 @@ func (contextFormatter) LeftContent(ln git.AlignedLine) string    { return ln.Ol
 func (contextFormatter) RightContent(ln git.AlignedLine) string   { return ln.NewContent }
 func (contextFormatter) LeftPrefix(git.AlignedLine) string        { return " " }
 func (contextFormatter) RightPrefix(git.AlignedLine) string       { return " " }
-func (contextFormatter) LeftStyle(_ git.AlignedLine, cursor bool) lipgloss.Style {
-	if cursor {
-		return lipgloss.NewStyle().Background(lipgloss.Color("#444444"))
-	}
-	return lineContextStyle
-}
-func (contextFormatter) RightStyle(_ git.AlignedLine, cursor bool) lipgloss.Style {
-	if cursor {
-		return lipgloss.NewStyle().Background(lipgloss.Color("#444444"))
-	}
-	return lineContextStyle
-}
+func (contextFormatter) LeftStyle(git.AlignedLine, bool) lipgloss.Style  { return emptyStyle }
+func (contextFormatter) RightStyle(git.AlignedLine, bool) lipgloss.Style { return emptyStyle }
 
 type addedFormatter struct{}
 
@@ -42,18 +34,8 @@ func (addedFormatter) LeftContent(git.AlignedLine) string          { return "" }
 func (addedFormatter) RightContent(ln git.AlignedLine) string      { return ln.NewContent }
 func (addedFormatter) LeftPrefix(git.AlignedLine) string           { return " " }
 func (addedFormatter) RightPrefix(git.AlignedLine) string          { return "+" }
-func (addedFormatter) LeftStyle(_ git.AlignedLine, cursor bool) lipgloss.Style {
-	if cursor {
-		return lipgloss.NewStyle().Background(lipgloss.Color("#444444"))
-	}
-	return lineContextStyle
-}
-func (addedFormatter) RightStyle(_ git.AlignedLine, cursor bool) lipgloss.Style {
-	if cursor {
-		return lipgloss.NewStyle().Background(lipgloss.Color("#444444")).Foreground(lipgloss.Color("#00FF00"))
-	}
-	return lineAddedStyle
-}
+func (addedFormatter) LeftStyle(git.AlignedLine, bool) lipgloss.Style  { return emptyStyle }
+func (addedFormatter) RightStyle(git.AlignedLine, bool) lipgloss.Style { return emptyStyle }
 
 type deletedFormatter struct{}
 
@@ -61,18 +43,8 @@ func (deletedFormatter) LeftContent(ln git.AlignedLine) string     { return ln.O
 func (deletedFormatter) RightContent(git.AlignedLine) string       { return "" }
 func (deletedFormatter) LeftPrefix(git.AlignedLine) string         { return "-" }
 func (deletedFormatter) RightPrefix(git.AlignedLine) string        { return " " }
-func (deletedFormatter) LeftStyle(_ git.AlignedLine, cursor bool) lipgloss.Style {
-	if cursor {
-		return lipgloss.NewStyle().Background(lipgloss.Color("#444444")).Foreground(lipgloss.Color("#FF0000"))
-	}
-	return lineDeletedStyle
-}
-func (deletedFormatter) RightStyle(_ git.AlignedLine, cursor bool) lipgloss.Style {
-	if cursor {
-		return lipgloss.NewStyle().Background(lipgloss.Color("#444444"))
-	}
-	return lineContextStyle
-}
+func (deletedFormatter) LeftStyle(git.AlignedLine, bool) lipgloss.Style  { return emptyStyle }
+func (deletedFormatter) RightStyle(git.AlignedLine, bool) lipgloss.Style { return emptyStyle }
 
 type modifiedFormatter struct{}
 
@@ -80,18 +52,8 @@ func (modifiedFormatter) LeftContent(ln git.AlignedLine) string    { return ln.O
 func (modifiedFormatter) RightContent(ln git.AlignedLine) string   { return ln.NewContent }
 func (modifiedFormatter) LeftPrefix(git.AlignedLine) string        { return "-" }
 func (modifiedFormatter) RightPrefix(git.AlignedLine) string       { return "+" }
-func (modifiedFormatter) LeftStyle(_ git.AlignedLine, cursor bool) lipgloss.Style {
-	if cursor {
-		return lipgloss.NewStyle().Background(lipgloss.Color("#444444")).Foreground(lipgloss.Color("#FF0000"))
-	}
-	return lineDeletedStyle
-}
-func (modifiedFormatter) RightStyle(_ git.AlignedLine, cursor bool) lipgloss.Style {
-	if cursor {
-		return lipgloss.NewStyle().Background(lipgloss.Color("#444444")).Foreground(lipgloss.Color("#00FF00"))
-	}
-	return lineAddedStyle
-}
+func (modifiedFormatter) LeftStyle(git.AlignedLine, bool) lipgloss.Style  { return emptyStyle }
+func (modifiedFormatter) RightStyle(git.AlignedLine, bool) lipgloss.Style { return emptyStyle }
 
 var defaultFormatters = NewDefaultFormatters()
 
@@ -104,7 +66,7 @@ func NewDefaultFormatters() map[git.LineKind]LineFormatter {
 	}
 }
 
-func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor bool) string {
+func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor bool, sh *SyntaxHighlighter, filePath string) string {
 	oldNum := ""
 	if ln.OldLineNum > 0 {
 		oldNum = strconv.Itoa(ln.OldLineNum)
@@ -114,10 +76,34 @@ func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor
 		newNum = strconv.Itoa(ln.NewLineNum)
 	}
 
-	leftLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, oldNum, f.LeftPrefix(ln), f.LeftContent(ln))
-	rightLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, newNum, f.RightPrefix(ln), f.RightContent(ln))
+	leftContent := f.LeftContent(ln)
+	rightContent := f.RightContent(ln)
+	if sh != nil {
+		leftContent = sh.Highlight(leftContent, filePath)
+		rightContent = sh.Highlight(rightContent, filePath)
+	}
 
-	return f.LeftStyle(ln, cursor).Width(colWidth).Render(leftLine) +
-		" │ " +
-		f.RightStyle(ln, cursor).Width(colWidth).Render(rightLine)
+	leftLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, oldNum, f.LeftPrefix(ln), leftContent)
+	rightLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, newNum, f.RightPrefix(ln), rightContent)
+
+	leftRendered := f.LeftStyle(ln, cursor).Width(colWidth).Render(leftLine)
+	rightRendered := f.RightStyle(ln, cursor).Width(colWidth).Render(rightLine)
+
+	if sh != nil {
+		leftRendered = renderLineWithHighlight(leftRendered, colWidth, ln.Kind, true, cursor)
+		rightRendered = renderLineWithHighlight(rightRendered, colWidth, ln.Kind, false, cursor)
+	}
+
+	return leftRendered + " │ " + rightRendered
+}
+
+func renderLineWithHighlight(s string, colWidth int, kind git.LineKind, isLeft bool, cursor bool) string {
+	if cursor {
+		return injectCursor(s)
+	}
+	bgCode := backgroundFor(kind, isLeft)
+	if bgCode != "" {
+		s = injectBackground(s, bgCode)
+	}
+	return padToWidth(s, colWidth, bgCode)
 }

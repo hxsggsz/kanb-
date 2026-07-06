@@ -29,17 +29,18 @@ const (
 )
 
 type model struct {
-	diffs    []git.SideBySideDiff
-	fileIdx  int
-	scroller *Scroller
-	screen   screen
-	loading  bool
-	err      error
-	width    int
-	height   int
+	diffs       []git.SideBySideDiff
+	fileIdx     int
+	scroller    *Scroller
+	screen      screen
+	loading     bool
+	err         error
+	width       int
+	height      int
 
-	repoPath string
-	gitArgs  []string
+	repoPath    string
+	gitArgs     []string
+	highlighter *SyntaxHighlighter
 }
 
 func (m *model) totalLines() int {
@@ -56,10 +57,11 @@ func (m *model) totalLines() int {
 
 func New(repoPath string, gitArgs []string) tea.Model {
 	return &model{
-		repoPath: repoPath,
-		gitArgs:  gitArgs,
-		loading:  true,
-		scroller: NewScroller(),
+		repoPath:    repoPath,
+		gitArgs:     gitArgs,
+		loading:     true,
+		scroller:    NewScroller(),
+		highlighter: NewSyntaxHighlighter(),
 	}
 }
 

@@ -97,7 +97,7 @@ func (m *model) renderFile(f git.SideBySideDiff, width int, vis int) string {
 		for _, ln := range h.Lines {
 			cursor := lineIdx == m.scroller.CursorLine()
 			fmtr := defaultFormatters[ln.Kind]
-			lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor))
+			lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath))
 			lineIdx++
 		}
 	}
