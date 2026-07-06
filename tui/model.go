@@ -15,7 +15,7 @@ const (
 const (
 	statusBarHeight = 1
 	borderHeight    = 2
-	hunkHeaderLines = 2
+	hunkHeaderLines = 1
 	lineNumColWidth = 4
 )
 

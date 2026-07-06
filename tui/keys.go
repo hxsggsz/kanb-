@@ -12,7 +12,5 @@ const (
 	keyTop     = "g"
 	keyBottom  = "G"
 	keyHelp    = "?"
-	keyEnter   = "enter"
-	keyBack    = "esc"
-	keyRefresh = "r"
+	keyBack = "esc"
 )

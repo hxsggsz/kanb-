@@ -7,17 +7,21 @@ import (
 )
 
 func Diff(repoPath string, args []string) ([]FileDiff, error) {
-	cmdArgs := []string{"diff", "--no-color", "--unified=3"}
-	cmdArgs = append(cmdArgs, args...)
+	var cmdArgs []string
+	if len(args) > 0 && args[0] == "show" {
+		cmdArgs = append([]string{"show", "--no-color", "--unified=3"}, args[1:]...)
+	} else {
+		cmdArgs = append([]string{"diff", "--no-color", "--unified=3"}, args...)
+	}
 
 	cmd := exec.Command("git", cmdArgs...)
 	cmd.Dir = repoPath
 	out, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("git diff failed: %s: %w", string(exitErr.Stderr), exitErr)
+			return nil, fmt.Errorf("git %s failed: %s: %w", cmdArgs[0], string(exitErr.Stderr), exitErr)
 		}
-		return nil, fmt.Errorf("git diff: %w", err)
+		return nil, fmt.Errorf("git %s: %w", cmdArgs[0], err)
 	}
 
 	raw := string(out)
