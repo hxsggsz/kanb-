@@ -29,15 +29,14 @@ const (
 )
 
 type model struct {
-	diffs      []git.SideBySideDiff
-	fileIdx    int
-	scroll     int
-	cursorLine int
-	screen     screen
-	loading    bool
-	err        error
-	width      int
-	height     int
+	diffs    []git.SideBySideDiff
+	fileIdx  int
+	scroller *Scroller
+	screen   screen
+	loading  bool
+	err      error
+	width    int
+	height   int
 
 	repoPath string
 	gitArgs  []string
@@ -60,6 +59,7 @@ func New(repoPath string, gitArgs []string) tea.Model {
 		repoPath: repoPath,
 		gitArgs:  gitArgs,
 		loading:  true,
+		scroller: NewScroller(),
 	}
 }
 

@@ -39,9 +39,11 @@ type UnifiedAligner struct{}
 
 func (a *UnifiedAligner) Align(hunks []Hunk) []AlignedHunk {
 	result := make([]AlignedHunk, len(hunks))
+
 	for i, h := range hunks {
 		ah := AlignedHunk{OldStart: h.OldStart, NewStart: h.NewStart, Header: h.Header}
 		var pending []Line
+
 		for _, ln := range h.Lines {
 			switch ln.Type {
 			case LineContext:
@@ -54,8 +56,10 @@ func (a *UnifiedAligner) Align(hunks []Hunk) []AlignedHunk {
 					OldContent: ln.Content,
 					NewContent: ln.Content,
 				})
+
 			case LineDeleted:
 				pending = append(pending, ln)
+
 			case LineAdded:
 				if len(pending) > 0 {
 					d := pending[0]

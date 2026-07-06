@@ -80,12 +80,11 @@ func TestCursorStopsAtReturnZero(t *testing.T) {
 	for height := 12; height <= 40; height++ {
 		t.Run(fmt.Sprintf("height=%d", height), func(t *testing.T) {
 			m := &model{
-				diffs:      []git.SideBySideDiff{f},
-				fileIdx:    0,
-				cursorLine: 0,
-				scroll:     0,
-				width:      80,
-				height:     height,
+				diffs:    []git.SideBySideDiff{f},
+				fileIdx:  0,
+				scroller: NewScroller(),
+				width:    80,
+				height:   height,
 			}
 
 			vis := m.visibleLines()
@@ -97,15 +96,15 @@ func TestCursorStopsAtReturnZero(t *testing.T) {
 				m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
 				m.renderFile(f, 80, m.visibleLines())
 
-				visPos := m.cursorLine - m.scroll
+				visPos := m.scroller.CursorLine() - m.scroller.Scroll()
 				if visPos < 0 || visPos >= vis {
 					t.Fatalf("DOWN step %d: cursorLine=%d outside view [scroll=%d, scroll+vis=%d) visPos=%d",
-						i+1, m.cursorLine, m.scroll, m.scroll+vis, visPos)
+						i+1, m.scroller.CursorLine(), m.scroller.Scroll(), m.scroller.Scroll()+vis, visPos)
 				}
 			}
 
-			if m.cursorLine != totalLines-1 {
-				t.Fatalf("expected cursorLine=%d (last line), got %d", totalLines-1, m.cursorLine)
+			if m.scroller.CursorLine() != totalLines-1 {
+				t.Fatalf("expected cursorLine=%d (last line), got %d", totalLines-1, m.scroller.CursorLine())
 			}
 
 			if m.totalLines() != totalLines {
@@ -133,12 +132,11 @@ func TestScrollForDifferentHeights(t *testing.T) {
 			}
 
 			m := &model{
-				diffs:      []git.SideBySideDiff{f},
-				fileIdx:    0,
-				cursorLine: 0,
-				scroll:     0,
-				width:      80,
-				height:     height,
+				diffs:    []git.SideBySideDiff{f},
+				fileIdx:  0,
+				scroller: NewScroller(),
+				width:    80,
+				height:   height,
 			}
 
 			total := m.totalLines()
@@ -152,38 +150,38 @@ func TestScrollForDifferentHeights(t *testing.T) {
 				m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
 				m.renderFile(f, 80, m.visibleLines())
 
-				visPos := m.cursorLine - m.scroll
+				visPos := m.scroller.CursorLine() - m.scroller.Scroll()
 				if visPos < 0 || visPos >= vis {
 					t.Fatalf("DOWN: cursorLine=%d outside view [scroll=%d, scroll+vis=%d) visPos=%d",
-						m.cursorLine, m.scroll, m.scroll+vis, visPos)
+						m.scroller.CursorLine(), m.scroller.Scroll(), m.scroller.Scroll()+vis, visPos)
 				}
 
-				if m.scroll < 0 {
-					t.Fatalf("DOWN: negative scroll=%d", m.scroll)
+				if m.scroller.Scroll() < 0 {
+					t.Fatalf("DOWN: negative scroll=%d", m.scroller.Scroll())
 				}
 			}
 
-			if m.cursorLine != total-1 {
-				t.Fatalf("expected cursor at last line %d, got %d", total-1, m.cursorLine)
+			if m.scroller.CursorLine() != total-1 {
+				t.Fatalf("expected cursor at last line %d, got %d", total-1, m.scroller.CursorLine())
 			}
 
 			for i := 0; i < total-1; i++ {
 				m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyUp})
 				m.renderFile(f, 80, m.visibleLines())
 
-				visPos := m.cursorLine - m.scroll
+				visPos := m.scroller.CursorLine() - m.scroller.Scroll()
 				if visPos < 0 || visPos >= vis {
 					t.Fatalf("UP: cursorLine=%d outside view [scroll=%d, scroll+vis=%d) visPos=%d",
-						m.cursorLine, m.scroll, m.scroll+vis, visPos)
+						m.scroller.CursorLine(), m.scroller.Scroll(), m.scroller.Scroll()+vis, visPos)
 				}
 
-				if m.scroll < 0 {
-					t.Fatalf("UP: negative scroll=%d", m.scroll)
+				if m.scroller.Scroll() < 0 {
+					t.Fatalf("UP: negative scroll=%d", m.scroller.Scroll())
 				}
 			}
 
-			if m.cursorLine != 0 {
-				t.Fatalf("expected cursor at line 0, got %d", m.cursorLine)
+			if m.scroller.CursorLine() != 0 {
+				t.Fatalf("expected cursor at line 0, got %d", m.scroller.CursorLine())
 			}
 		})
 	}
@@ -225,12 +223,11 @@ func TestScrollStallDetector(t *testing.T) {
 			}
 
 			m := &model{
-				diffs:      []git.SideBySideDiff{f},
-				fileIdx:    0,
-				cursorLine: 0,
-				scroll:     0,
-				width:      80,
-				height:     tc.height,
+				diffs:    []git.SideBySideDiff{f},
+				fileIdx:  0,
+				scroller: NewScroller(),
+				width:    80,
+				height:   tc.height,
 			}
 
 			total := m.totalLines()
@@ -245,7 +242,6 @@ func TestScrollStallDetector(t *testing.T) {
 				maxScroll = 0
 			}
 
-			scrollMargin := 8
 			prevScroll := -1
 			stallCount := 0
 
@@ -255,21 +251,21 @@ func TestScrollStallDetector(t *testing.T) {
 				}
 				m.renderFile(f, 80, m.visibleLines())
 
-				if m.scroll == prevScroll && m.cursorLine > m.scroll+vis-scrollMargin {
-					if m.scroll < maxScroll {
+				if m.scroller.Scroll() == prevScroll && m.scroller.CursorLine() > m.scroller.Scroll()+vis-scrollMargin {
+					if m.scroller.Scroll() < maxScroll {
 						stallCount++
 						if stallCount > 3 {
 							t.Fatalf("SCROLL STALL at step cursorLine=%d scroll=%d prevScroll=%d maxScroll=%d vis=%d",
-								m.cursorLine, m.scroll, prevScroll, maxScroll, vis)
+								m.scroller.CursorLine(), m.scroller.Scroll(), prevScroll, maxScroll, vis)
 						}
 					}
 				} else {
-					if m.scroll != prevScroll {
+					if m.scroller.Scroll() != prevScroll {
 						stallCount = 0
 					}
 				}
 
-				prevScroll = m.scroll
+				prevScroll = m.scroller.Scroll()
 			}
 		})
 	}
