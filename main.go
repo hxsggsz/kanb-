@@ -19,7 +19,8 @@ func main() {
 		defer f.Close()
 	}
 
-	p := tea.NewProgram(tui.New())
+	repoPath, _ := os.Getwd()
+	p := tea.NewProgram(tui.New(repoPath, []string{}))
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
