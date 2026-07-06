@@ -83,35 +83,19 @@ func parseRawDiff(lines []string) ([]FileDiff, error) {
 			prefix := line[0]
 			content := line[1:]
 
-			oldNum, newNum := lineNumNone, lineNumNone
-			if len(h.Lines) > 0 {
-				last := h.Lines[len(h.Lines)-1]
-				oldNum = last.OldLineNum
-				newNum = last.NewLineNum
-			} else {
-				oldNum = h.OldStart - lineNumBase
-				newNum = h.NewStart - lineNumBase
-			}
-
 			switch prefix {
 			case ' ':
-				oldNum++
-				newNum++
-				h.Lines = append(h.Lines, Line{Type: LineContext, OldLineNum: oldNum, NewLineNum: newNum, Content: content})
+				h.Lines = append(h.Lines, Line{Type: LineContext, Content: content})
 			case '+':
-				newNum++
-				h.Lines = append(h.Lines, Line{Type: LineAdded, OldLineNum: lineNumNone, NewLineNum: newNum, Content: content})
+				h.Lines = append(h.Lines, Line{Type: LineAdded, Content: content})
 			case '-':
-				oldNum++
-				h.Lines = append(h.Lines, Line{Type: LineDeleted, OldLineNum: oldNum, NewLineNum: lineNumNone, Content: content})
+				h.Lines = append(h.Lines, Line{Type: LineDeleted, Content: content})
 			case '\\':
 				if len(h.Lines) > 0 {
 					last := &h.Lines[len(h.Lines)-1]
 					last.Content += " " + strings.TrimPrefix(line, "\\ ")
 				}
 			}
-
-			recalcLineNums(h)
 		}
 	}
 
@@ -123,16 +107,20 @@ func parseRawDiff(lines []string) ([]FileDiff, error) {
 		if files[i].Status == "" {
 			files[i].Status = "M"
 		}
+		for j := range files[i].Hunks {
+			recalcLineNums(&files[i].Hunks[j])
+		}
 	}
 
 	return files, nil
 }
 
-func parseHunkHeader(line string) (Hunk, error) {
+func parseHunkHeader(rawLine string) (Hunk, error) {
 	var h Hunk
-	line = strings.TrimPrefix(line, "@@ ")
+	h.Header = rawLine
+	line := strings.TrimPrefix(rawLine, "@@ ")
 	parts := strings.SplitN(line, " @@", hunkParts)
-	if len(parts) < 1 {
+	if len(parts) < 2 {
 		return h, fmt.Errorf("invalid hunk header: %s", line)
 	}
 	spaces := strings.Fields(parts[0])
@@ -166,7 +154,6 @@ func parseHunkHeader(line string) (Hunk, error) {
 		return h, fmt.Errorf("parse new position: %w", err)
 	}
 
-	h.Header = line
 	return h, nil
 }
 
