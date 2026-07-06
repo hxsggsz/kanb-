@@ -122,8 +122,39 @@ index abc1234..0000000
 	if f.Status != "D" {
 		t.Errorf("expected D, got %s", f.Status)
 	}
+	if len(f.Hunks) == 0 {
+		t.Fatal("expected hunks for deleted file")
+	}
 	if len(f.Hunks[0].Lines) != 5 {
 		t.Errorf("expected 5 lines, got %d", len(f.Hunks[0].Lines))
+	}
+}
+
+func TestParseRenameFile(t *testing.T) {
+	input := `diff --git a/old.go b/new.go
+similarity index 100%
+rename from old.go
+rename to new.go
+`
+	files, err := parseRawDiff(splitLines(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 1 {
+		t.Fatalf("expected 1 file, got %d", len(files))
+	}
+	f := files[0]
+	if !f.IsRename {
+		t.Error("expected IsRename")
+	}
+	if f.Status != "R" {
+		t.Errorf("expected R, got %s", f.Status)
+	}
+	if f.OldPath != "old.go" {
+		t.Errorf("expected old.go, got %s", f.OldPath)
+	}
+	if f.NewPath != "new.go" {
+		t.Errorf("expected new.go, got %s", f.NewPath)
 	}
 }
 
