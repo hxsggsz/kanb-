@@ -8,24 +8,24 @@ import (
 )
 
 func TestCursorAtEndOfFile(t *testing.T) {
-	h := git.Hunk{
+	h := git.AlignedHunk{
 		Header: "@@ -1,5 +1,6 @@",
-		Lines: []git.Line{
-			{Type: git.LineContext, OldLineNum: 1, NewLineNum: 1, Content: "line1"},
-			{Type: git.LineContext, OldLineNum: 2, NewLineNum: 2, Content: "line2"},
-			{Type: git.LineContext, OldLineNum: 3, NewLineNum: 3, Content: "line3"},
-			{Type: git.LineContext, OldLineNum: 4, NewLineNum: 4, Content: "line4"},
-			{Type: git.LineAdded, OldLineNum: 0, NewLineNum: 5, Content: "line5new"},
+		Lines: []git.AlignedLine{
+			{Kind: git.KindContext, OldLineNum: 1, NewLineNum: 1, OldContent: "line1", NewContent: "line1"},
+			{Kind: git.KindContext, OldLineNum: 2, NewLineNum: 2, OldContent: "line2", NewContent: "line2"},
+			{Kind: git.KindContext, OldLineNum: 3, NewLineNum: 3, OldContent: "line3", NewContent: "line3"},
+			{Kind: git.KindContext, OldLineNum: 4, NewLineNum: 4, OldContent: "line4", NewContent: "line4"},
+			{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 5, NewContent: "line5new"},
 		},
 	}
-	f := git.FileDiff{
+	f := git.SideBySideDiff{
 		NewPath: "test.txt",
 		Status:  "M",
-		Hunks:   []git.Hunk{h},
+		Hunks:   []git.AlignedHunk{h},
 	}
 
 	m := &model{
-		diffs:      []git.FileDiff{f},
+		diffs:      []git.SideBySideDiff{f},
 		fileIdx:    0,
 		cursorLine: 0,
 		scroll:     0,
@@ -67,22 +67,22 @@ func TestCursorAtEndOfFile(t *testing.T) {
 }
 
 func TestScrollAdvancesWithCursor(t *testing.T) {
-	lines := make([]git.Line, 200)
+	lines := make([]git.AlignedLine, 200)
 	for i := range lines {
-		lines[i] = git.Line{Type: git.LineContext, OldLineNum: i + 1, NewLineNum: i + 1, Content: "line"}
+		lines[i] = git.AlignedLine{Kind: git.KindContext, OldLineNum: i + 1, NewLineNum: i + 1, OldContent: "line", NewContent: "line"}
 	}
-	h := git.Hunk{
+	h := git.AlignedHunk{
 		Header: "@@ -1,200 +1,200 @@",
 		Lines:  lines,
 	}
-	f := git.FileDiff{
+	f := git.SideBySideDiff{
 		NewPath: "test.txt",
 		Status:  "M",
-		Hunks:   []git.Hunk{h},
+		Hunks:   []git.AlignedHunk{h},
 	}
 
 	m := &model{
-		diffs:      []git.FileDiff{f},
+		diffs:      []git.SideBySideDiff{f},
 		fileIdx:    0,
 		cursorLine: 0,
 		scroll:     0,
@@ -120,22 +120,22 @@ func TestScrollAdvancesWithCursor(t *testing.T) {
 }
 
 func TestScrollDoesNotGetStuck(t *testing.T) {
-	lines := make([]git.Line, 100)
+	lines := make([]git.AlignedLine, 100)
 	for i := range lines {
-		lines[i] = git.Line{Type: git.LineContext, OldLineNum: i + 1, NewLineNum: i + 1, Content: "line"}
+		lines[i] = git.AlignedLine{Kind: git.KindContext, OldLineNum: i + 1, NewLineNum: i + 1, OldContent: "line", NewContent: "line"}
 	}
-	h := git.Hunk{
+	h := git.AlignedHunk{
 		Header: "@@ -1,100 +1,100 @@",
 		Lines:  lines,
 	}
-	f := git.FileDiff{
+	f := git.SideBySideDiff{
 		NewPath: "test.txt",
 		Status:  "M",
-		Hunks:   []git.Hunk{h},
+		Hunks:   []git.AlignedHunk{h},
 	}
 
 	m := &model{
-		diffs:      []git.FileDiff{f},
+		diffs:      []git.SideBySideDiff{f},
 		fileIdx:    0,
 		cursorLine: 0,
 		scroll:     0,
@@ -180,22 +180,22 @@ func TestScrollDoesNotGetStuck(t *testing.T) {
 }
 
 func TestScrollKeepsCursorInViewForLargeFile(t *testing.T) {
-	lines := make([]git.Line, 500)
+	lines := make([]git.AlignedLine, 500)
 	for i := range lines {
-		lines[i] = git.Line{Type: git.LineContext, OldLineNum: i + 1, NewLineNum: i + 1, Content: "line"}
+		lines[i] = git.AlignedLine{Kind: git.KindContext, OldLineNum: i + 1, NewLineNum: i + 1, OldContent: "line", NewContent: "line"}
 	}
-	h := git.Hunk{
+	h := git.AlignedHunk{
 		Header: "@@ -1,500 +1,500 @@",
 		Lines:  lines,
 	}
-	f := git.FileDiff{
+	f := git.SideBySideDiff{
 		NewPath: "test.txt",
 		Status:  "M",
-		Hunks:   []git.Hunk{h},
+		Hunks:   []git.AlignedHunk{h},
 	}
 
 	m := &model{
-		diffs:      []git.FileDiff{f},
+		diffs:      []git.SideBySideDiff{f},
 		fileIdx:    0,
 		cursorLine: 0,
 		scroll:     0,
@@ -222,22 +222,22 @@ func TestScrollKeepsCursorInViewForLargeFile(t *testing.T) {
 }
 
 func TestScrollUpFromBottom(t *testing.T) {
-	lines := make([]git.Line, 100)
+	lines := make([]git.AlignedLine, 100)
 	for i := range lines {
-		lines[i] = git.Line{Type: git.LineContext, OldLineNum: i + 1, NewLineNum: i + 1, Content: "line"}
+		lines[i] = git.AlignedLine{Kind: git.KindContext, OldLineNum: i + 1, NewLineNum: i + 1, OldContent: "line", NewContent: "line"}
 	}
-	h := git.Hunk{
+	h := git.AlignedHunk{
 		Header: "@@ -1,100 +1,100 @@",
 		Lines:  lines,
 	}
-	f := git.FileDiff{
+	f := git.SideBySideDiff{
 		NewPath: "test.txt",
 		Status:  "M",
-		Hunks:   []git.Hunk{h},
+		Hunks:   []git.AlignedHunk{h},
 	}
 
 	m := &model{
-		diffs:      []git.FileDiff{f},
+		diffs:      []git.SideBySideDiff{f},
 		fileIdx:    0,
 		cursorLine: 0,
 		scroll:     0,
@@ -247,7 +247,6 @@ func TestScrollUpFromBottom(t *testing.T) {
 
 	total := m.totalLines()
 
-	// Go to bottom
 	for i := 0; i < total-1; i++ {
 		m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
 	}
@@ -255,7 +254,6 @@ func TestScrollUpFromBottom(t *testing.T) {
 
 	t.Logf("at bottom: cursorLine=%d, scroll=%d", m.cursorLine, m.scroll)
 
-	// Go back up and verify scroll decreases
 	for i := 0; i < total-1; i++ {
 		m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyUp})
 		m.renderFile(f, 80, m.visibleLines())
@@ -274,22 +272,22 @@ func TestScrollUpFromBottom(t *testing.T) {
 }
 
 func TestScrollHysteresisCursorVisiblePosition(t *testing.T) {
-	lines := make([]git.Line, 50)
+	lines := make([]git.AlignedLine, 50)
 	for i := range lines {
-		lines[i] = git.Line{Type: git.LineContext, OldLineNum: i + 1, NewLineNum: i + 1, Content: "line"}
+		lines[i] = git.AlignedLine{Kind: git.KindContext, OldLineNum: i + 1, NewLineNum: i + 1, OldContent: "line", NewContent: "line"}
 	}
-	h := git.Hunk{
+	h := git.AlignedHunk{
 		Header: "@@ -1,50 +1,50 @@",
 		Lines:  lines,
 	}
-	f := git.FileDiff{
+	f := git.SideBySideDiff{
 		NewPath: "test.txt",
 		Status:  "M",
-		Hunks:   []git.Hunk{h},
+		Hunks:   []git.AlignedHunk{h},
 	}
 
 	m := &model{
-		diffs:      []git.FileDiff{f},
+		diffs:      []git.SideBySideDiff{f},
 		fileIdx:    0,
 		cursorLine: 0,
 		scroll:     0,
@@ -299,7 +297,6 @@ func TestScrollHysteresisCursorVisiblePosition(t *testing.T) {
 
 	total := m.totalLines()
 
-	// Navigate all the way down, check cursor stays in view
 	for i := 0; i < total-1; i++ {
 		m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
 		m.renderFile(f, 80, m.visibleLines())
@@ -310,7 +307,6 @@ func TestScrollHysteresisCursorVisiblePosition(t *testing.T) {
 		}
 	}
 
-	// Navigate all the way up, check cursor stays in view
 	for i := 0; i < total-1; i++ {
 		m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyUp})
 		m.renderFile(f, 80, m.visibleLines())

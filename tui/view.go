@@ -90,10 +90,11 @@ func (m *model) diffView() string {
 		fmt.Sprintf(" %d/%d  •  Ln %d/%d  •  ↑↓ cursor  •  n/p file  •  g/G top/bottom  •  ? help  •  q quit",
 			m.fileIdx+1, len(m.diffs), cursorLine, total))
 
-	return fmt.Sprintf("%s%s\n%s", sidebar, content, statusBar)
+	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, content)
+	return fmt.Sprintf("%s\n%s", body, statusBar)
 }
 
-func (m *model) renderFile(f git.FileDiff, width int, vis int) string {
+func (m *model) renderFile(f git.SideBySideDiff, width int, vis int) string {
 	total := m.totalLines()
 	if total == 0 {
 		return ""
@@ -159,7 +160,7 @@ func (m *model) renderFile(f git.FileDiff, width int, vis int) string {
 	return strings.Join(lines[start:end], "\n")
 }
 
-func formatLine(ln git.Line, width int, cursor bool) string {
+func formatLine(ln git.AlignedLine, width int, cursor bool) string {
 	oldStr := ""
 	newStr := ""
 	if ln.OldLineNum > 0 {
@@ -173,37 +174,40 @@ func formatLine(ln git.Line, width int, cursor bool) string {
 	lineNum := fmt.Sprintf(lineNumFmt, oldStr, newStr)
 
 	prefix := " "
-	switch ln.Type {
-	case git.LineAdded:
+	content := ln.OldContent
+	switch ln.Kind {
+	case git.KindAdded:
 		prefix = "+"
-	case git.LineDeleted:
+		content = ln.NewContent
+	case git.KindDeleted:
 		prefix = "-"
+		content = ln.OldContent
 	}
 
 	if cursor {
-		line := fmt.Sprintf("%s %s %s", lineNum, prefix, ln.Content)
+		line := fmt.Sprintf("%s %s %s", lineNum, prefix, content)
 		if len(line) > width {
 			line = line[:width]
 		}
 		style := lipgloss.NewStyle().Background(lipgloss.Color("#444444"))
-		switch ln.Type {
-		case git.LineAdded:
+		switch ln.Kind {
+		case git.KindAdded:
 			style = style.Foreground(lipgloss.Color("#00FF00"))
-		case git.LineDeleted:
+		case git.KindDeleted:
 			style = style.Foreground(lipgloss.Color("#FF0000"))
 		}
 		return style.Render(line)
 	}
 
 	style := lineContextStyle
-	switch ln.Type {
-	case git.LineAdded:
+	switch ln.Kind {
+	case git.KindAdded:
 		style = lineAddedStyle
-	case git.LineDeleted:
+	case git.KindDeleted:
 		style = lineDeletedStyle
 	}
 
-	line := fmt.Sprintf("%s %s %s", lineNumStyle.Render(lineNum), prefix, ln.Content)
+	line := fmt.Sprintf("%s %s %s", lineNumStyle.Render(lineNum), prefix, content)
 	if len(line) > width {
 		line = line[:width]
 	}

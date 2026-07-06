@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -27,7 +28,8 @@ func RunTUI(gitArgs []string) {
 		os.Exit(1)
 	}
 
-	repoPath, err := git.RepoRoot(cwd)
+	runner := git.NewGitRunner(cwd)
+	repoPath, err := git.Execute(context.Background(), runner, &git.RepoRootCommand{})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

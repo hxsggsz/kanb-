@@ -1,43 +1,36 @@
 package git
 
-import (
-	"fmt"
-	"os/exec"
-	"strings"
-)
-
-func Diff(repoPath string, args []string) ([]FileDiff, error) {
-	var cmdArgs []string
-	if len(args) > 0 && args[0] == "show" {
-		cmdArgs = append([]string{"show", "--no-color", "--unified=3"}, args[1:]...)
-	} else {
-		cmdArgs = append([]string{"diff", "--no-color", "--unified=3"}, args...)
-	}
-
-	cmd := exec.Command("git", cmdArgs...)
-	cmd.Dir = repoPath
-	out, err := cmd.Output()
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("git %s failed: %s: %w", cmdArgs[0], string(exitErr.Stderr), exitErr)
-		}
-		return nil, fmt.Errorf("git %s: %w", cmdArgs[0], err)
-	}
-
-	raw := string(out)
-	if raw == "" {
-		return []FileDiff{}, nil
-	}
-
-	return parseRawDiff(strings.Split(raw, "\n"))
+type DiffArgs struct {
+	Show bool
+	Args []string
 }
 
-func RepoRoot(path string) (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
-	cmd.Dir = path
-	out, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("not a git repository: %w", err)
+type DiffCommand struct {
+	DiffArgs
+	Parser  *UnifiedParser
+	Aligner LineAligner
+}
+
+func (c *DiffCommand) Args() []string {
+	if c.DiffArgs.Show {
+		return append([]string{"show", "--no-color", "--unified=3"}, c.DiffArgs.Args...)
 	}
-	return strings.TrimSpace(string(out)), nil
+	return append([]string{"diff", "--no-color", "--unified=3"}, c.DiffArgs.Args...)
+}
+
+func (c *DiffCommand) Parse(raw string) ([]SideBySideDiff, error) {
+	files, err := c.Parser.Parse(raw)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]SideBySideDiff, len(files))
+	for i, f := range files {
+		result[i] = SideBySideDiff{
+			OldPath: f.OldPath,
+			NewPath: f.NewPath,
+			Status:  f.Status,
+			Hunks:   c.Aligner.Align(f.Hunks),
+		}
+	}
+	return result, nil
 }

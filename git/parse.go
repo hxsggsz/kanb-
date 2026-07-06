@@ -6,120 +6,215 @@ import (
 	"strings"
 )
 
-type parseState int
+type ParseState int
 
 const (
-	stateHeader    parseState = iota
-	stateOldPath
-	stateNewPath
-	stateHunk
-	stateLine
+	StateHeader ParseState = iota
+	StateOldPath
+	StateNewPath
+	StateHunk
+	StateLine
 )
 
 const (
-	diffLineParts    = 4 // "diff --git a/old b/new" splits into [diff, --git, a/old, b/new]
-	oldPathIdx       = 2
-	newPathIdx       = 3
-	hunkParts        = 2 // "@@ coords @@ desc" splits into [coords, desc]
-	lineNumBase      = 1 // unified diff line numbers are 1-based
-	lineNumNone      = 0 // sentinel when a line has no old or new number
-	defaultHunkCount = 1 // implied count when hunk header omits it (e.g. @@ -1 +1 @@)
+	lineNumBase = 1
+	lineNumNone = 0
 )
 
-func parseRawDiff(lines []string) ([]FileDiff, error) {
-	var files []FileDiff
-	var cur *FileDiff
-	var state parseState
+type LineParser interface {
+	Match(line string) bool
+	Parse(line string, cur *FileDiff, state *ParseState) error
+}
 
-	for _, line := range lines {
-		switch {
-		case strings.HasPrefix(line, "diff --git"):
-			if cur != nil {
-				files = append(files, *cur)
-			}
-			cur = &FileDiff{}
-			parts := strings.SplitN(line, " ", diffLineParts)
-			if len(parts) >= diffLineParts {
-				cur.OldPath = strings.TrimPrefix(parts[oldPathIdx], "a/")
-				cur.NewPath = strings.TrimPrefix(parts[newPathIdx], "b/")
-			}
-			state = stateOldPath
+type DiffStartParser struct{}
 
-		case strings.HasPrefix(line, "--- "):
-			state = stateNewPath
+func (p *DiffStartParser) Match(line string) bool {
+	return strings.HasPrefix(line, "diff --git")
+}
 
-		case strings.HasPrefix(line, "+++ "):
-			state = stateHunk
+func (p *DiffStartParser) Parse(line string, cur *FileDiff, _ *ParseState) error {
+	parts := strings.SplitN(line, " ", 4)
+	if len(parts) >= 4 {
+		cur.OldPath = strings.TrimPrefix(parts[2], "a/")
+		cur.NewPath = strings.TrimPrefix(parts[3], "b/")
+	}
+	return nil
+}
 
-		case strings.HasPrefix(line, "@@"):
-			h, err := parseHunkHeader(line)
-			if err != nil {
-				return nil, fmt.Errorf("parse hunk header: %w", err)
-			}
-			cur.Hunks = append(cur.Hunks, h)
-			state = stateLine
+type HunkHeaderParser struct{}
 
-		case strings.HasPrefix(line, "Binary files"):
-			cur.IsBinary = true
+func (p *HunkHeaderParser) Match(line string) bool {
+	return strings.HasPrefix(line, "@@")
+}
 
-		case strings.HasPrefix(line, "new file mode"):
-			cur.IsNew = true
-			cur.Status = "A"
+func (p *HunkHeaderParser) Parse(line string, cur *FileDiff, _ *ParseState) error {
+	h, err := parseHunkHeader(line)
+	if err != nil {
+		return fmt.Errorf("parse hunk header: %w", err)
+	}
+	cur.Hunks = append(cur.Hunks, h)
+	return nil
+}
 
-		case strings.HasPrefix(line, "deleted file mode"):
-			cur.IsDelete = true
-			cur.Status = "D"
+type ContentLineParser struct{}
 
-		case strings.HasPrefix(line, "rename from"):
-			cur.IsRename = true
-			cur.Status = "R"
+func (p *ContentLineParser) Match(line string) bool {
+	return len(line) > 0 && (line[0] == ' ' || line[0] == '+' || line[0] == '-' || line[0] == '\\')
+}
 
-		case strings.HasPrefix(line, "old mode") || strings.HasPrefix(line, "new mode"):
+func (p *ContentLineParser) Parse(line string, cur *FileDiff, _ *ParseState) error {
+	if len(cur.Hunks) == 0 {
+		return nil
+	}
+	h := &cur.Hunks[len(cur.Hunks)-1]
+	prefix := line[0]
+	content := line[1:]
 
-		case strings.HasPrefix(line, "similarity index") || strings.HasPrefix(line, "copy from") || strings.HasPrefix(line, "copy to"):
-
-		case state == stateLine && len(line) > 0 && cur != nil && len(cur.Hunks) > 0:
-			h := &cur.Hunks[len(cur.Hunks)-1]
-			prefix := line[0]
-			content := line[1:]
-
-			switch prefix {
-			case ' ':
-				h.Lines = append(h.Lines, Line{Type: LineContext, Content: content})
-			case '+':
-				h.Lines = append(h.Lines, Line{Type: LineAdded, Content: content})
-			case '-':
-				h.Lines = append(h.Lines, Line{Type: LineDeleted, Content: content})
-			case '\\':
-				if len(h.Lines) > 0 {
-					last := &h.Lines[len(h.Lines)-1]
-					last.Content += " " + strings.TrimPrefix(line, "\\ ")
-				}
-			}
+	switch prefix {
+	case ' ':
+		h.Lines = append(h.Lines, Line{Type: LineContext, Content: content})
+	case '+':
+		h.Lines = append(h.Lines, Line{Type: LineAdded, Content: content})
+	case '-':
+		h.Lines = append(h.Lines, Line{Type: LineDeleted, Content: content})
+	case '\\':
+		if len(h.Lines) > 0 {
+			last := &h.Lines[len(h.Lines)-1]
+			last.Content += " " + strings.TrimPrefix(line, "\\ ")
 		}
 	}
+	return nil
+}
 
-	if cur != nil {
-		files = append(files, *cur)
-	}
+type MetadataParser struct {
+	prefix string
+	apply  func(*FileDiff)
+}
 
-	for i := range files {
-		if files[i].Status == "" {
-			files[i].Status = "M"
+func NewMetadataParser(prefix string, apply func(*FileDiff)) *MetadataParser {
+	return &MetadataParser{prefix: prefix, apply: apply}
+}
+
+func (p *MetadataParser) Match(line string) bool {
+	return strings.HasPrefix(line, p.prefix)
+}
+
+func (p *MetadataParser) Parse(line string, cur *FileDiff, _ *ParseState) error {
+	p.apply(cur)
+	return nil
+}
+
+type ParserBuilder struct {
+	parsers []LineParser
+}
+
+func NewParserBuilder() *ParserBuilder {
+	return &ParserBuilder{}
+}
+
+func (b *ParserBuilder) Add(p LineParser) *ParserBuilder {
+	b.parsers = append(b.parsers, p)
+	return b
+}
+
+func (b *ParserBuilder) AddMetadata(prefix string, apply func(*FileDiff)) *ParserBuilder {
+	return b.Add(NewMetadataParser(prefix, apply))
+}
+
+func (b *ParserBuilder) Build() *UnifiedParser {
+	return &UnifiedParser{parsers: b.parsers}
+}
+
+type UnifiedParser struct {
+	parsers []LineParser
+}
+
+func NewUnifiedParser() *UnifiedParser {
+	return NewParserBuilder().
+		Add(&DiffStartParser{}).
+		AddMetadata("--- ", func(f *FileDiff) {}).
+		AddMetadata("+++ ", func(f *FileDiff) {}).
+		Add(&HunkHeaderParser{}).
+		AddMetadata("Binary files", func(f *FileDiff) { f.IsBinary = true }).
+		AddMetadata("new file mode", func(f *FileDiff) { f.IsNew = true; f.Status = "A" }).
+		AddMetadata("deleted file mode", func(f *FileDiff) { f.IsDelete = true; f.Status = "D" }).
+		AddMetadata("rename from", func(f *FileDiff) { f.IsRename = true; f.Status = "R" }).
+		AddMetadata("rename to", func(f *FileDiff) {}).
+		AddMetadata("old mode", func(f *FileDiff) {}).
+		AddMetadata("new mode", func(f *FileDiff) {}).
+		AddMetadata("similarity index", func(f *FileDiff) {}).
+		AddMetadata("copy from", func(f *FileDiff) {}).
+		AddMetadata("copy to", func(f *FileDiff) {}).
+		AddMetadata("index ", func(f *FileDiff) {}).
+		Add(&ContentLineParser{}).
+		Build()
+}
+
+type parseEngine struct {
+	parsers []LineParser
+	files   []FileDiff
+	cur     *FileDiff
+	state   ParseState
+	err     error
+}
+
+func (e *parseEngine) feed(line string) {
+	p := e.match(line)
+	if p == nil {
+		if e.cur != nil && e.state == StateLine {
+			e.cur.IsBinary = true
 		}
-		for j := range files[i].Hunks {
-			recalcLineNums(&files[i].Hunks[j])
+		return
+	}
+	if _, ok := p.(*DiffStartParser); ok {
+		if e.cur != nil {
+			e.files = append(e.files, *e.cur)
+		}
+		e.cur = &FileDiff{}
+		e.state = StateHeader
+	}
+	if e.cur == nil {
+		return
+	}
+	e.err = p.Parse(line, e.cur, &e.state)
+}
+
+func (e *parseEngine) match(line string) LineParser {
+	for _, p := range e.parsers {
+		if p.Match(line) {
+			return p
 		}
 	}
+	return nil
+}
 
-	return files, nil
+func (p *UnifiedParser) Parse(raw string) ([]FileDiff, error) {
+	eng := &parseEngine{parsers: p.parsers}
+	for _, line := range strings.Split(raw, "\n") {
+		eng.feed(line)
+		if eng.err != nil {
+			return nil, eng.err
+		}
+	}
+	if eng.cur != nil {
+		eng.files = append(eng.files, *eng.cur)
+	}
+	for i := range eng.files {
+		if eng.files[i].Status == "" {
+			eng.files[i].Status = "M"
+		}
+		for j := range eng.files[i].Hunks {
+			recalcLineNums(&eng.files[i].Hunks[j])
+		}
+	}
+	return eng.files, nil
 }
 
 func parseHunkHeader(rawLine string) (Hunk, error) {
 	var h Hunk
 	h.Header = rawLine
 	line := strings.TrimPrefix(rawLine, "@@ ")
-	parts := strings.SplitN(line, " @@", hunkParts)
+	parts := strings.SplitN(line, " @@", 2)
 	if len(parts) < 2 {
 		return h, fmt.Errorf("invalid hunk header: %s", line)
 	}
@@ -131,14 +226,14 @@ func parseHunkHeader(rawLine string) (Hunk, error) {
 	parsePart := func(s string) (start, count int, err error) {
 		s = strings.TrimPrefix(s, "-")
 		s = strings.TrimPrefix(s, "+")
-		comma := strings.Index(s, ",")
-		if comma < 0 {
+		before, after, ok := strings.Cut(s, ",")
+		if !ok {
 			start, err = strconv.Atoi(s)
-			count = defaultHunkCount
+			count = 1
 		} else {
-			start, err = strconv.Atoi(s[:comma])
+			start, err = strconv.Atoi(before)
 			if err == nil {
-				count, err = strconv.Atoi(s[comma+1:])
+				count, err = strconv.Atoi(after)
 			}
 		}
 		return
@@ -153,7 +248,6 @@ func parseHunkHeader(rawLine string) (Hunk, error) {
 	if err != nil {
 		return h, fmt.Errorf("parse new position: %w", err)
 	}
-
 	return h, nil
 }
 

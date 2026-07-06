@@ -29,7 +29,7 @@ const (
 )
 
 type model struct {
-	diffs      []git.FileDiff
+	diffs      []git.SideBySideDiff
 	fileIdx    int
 	scroll     int
 	cursorLine int

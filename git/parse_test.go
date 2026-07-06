@@ -4,6 +4,130 @@ import (
 	"testing"
 )
 
+func TestDiffStartParser(t *testing.T) {
+	p := &DiffStartParser{}
+	if !p.Match("diff --git a/foo b/foo") {
+		t.Error("expected match")
+	}
+	if p.Match("@@ -1 +1 @@") {
+		t.Error("unexpected match")
+	}
+
+	cur := &FileDiff{}
+	var state ParseState
+	err := p.Parse("diff --git a/old.go b/new.go", cur, &state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cur.OldPath != "old.go" || cur.NewPath != "new.go" {
+		t.Errorf("got old=%q new=%q", cur.OldPath, cur.NewPath)
+	}
+}
+
+func TestHunkHeaderParser(t *testing.T) {
+	p := &HunkHeaderParser{}
+	if !p.Match("@@ -1,4 +1,5 @@") {
+		t.Error("expected match")
+	}
+	if p.Match("--- a/foo") {
+		t.Error("unexpected match")
+	}
+
+	cur := &FileDiff{}
+	var state ParseState
+	err := p.Parse("@@ -1,4 +1,5 @@ func foo() {", cur, &state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cur.Hunks) != 1 {
+		t.Fatalf("expected 1 hunk, got %d", len(cur.Hunks))
+	}
+	h := cur.Hunks[0]
+	if h.OldStart != 1 || h.OldCount != 4 {
+		t.Errorf("old: got %d,%d", h.OldStart, h.OldCount)
+	}
+	if h.NewStart != 1 || h.NewCount != 5 {
+		t.Errorf("new: got %d,%d", h.NewStart, h.NewCount)
+	}
+}
+
+func TestMetadataParser(t *testing.T) {
+	t.Run("new file", func(t *testing.T) {
+		p := NewMetadataParser("new file mode", func(f *FileDiff) {
+			f.IsNew = true; f.Status = "A"
+		})
+		if !p.Match("new file mode 100644") {
+			t.Error("expected match")
+		}
+		cur := &FileDiff{}
+		var state ParseState
+		p.Parse("new file mode 100644", cur, &state)
+		if !cur.IsNew || cur.Status != "A" {
+			t.Error("expected IsNew with Status A")
+		}
+	})
+
+	t.Run("deleted file", func(t *testing.T) {
+		p := NewMetadataParser("deleted file mode", func(f *FileDiff) {
+			f.IsDelete = true; f.Status = "D"
+		})
+		cur := &FileDiff{}
+		var state ParseState
+		p.Parse("deleted file mode 100644", cur, &state)
+		if !cur.IsDelete || cur.Status != "D" {
+			t.Error("expected IsDelete with Status D")
+		}
+	})
+
+	t.Run("binary files", func(t *testing.T) {
+		p := NewMetadataParser("Binary files", func(f *FileDiff) {
+			f.IsBinary = true
+		})
+		cur := &FileDiff{}
+		var state ParseState
+		p.Parse("Binary files a/x and b/x differ", cur, &state)
+		if !cur.IsBinary {
+			t.Error("expected IsBinary")
+		}
+	})
+}
+
+func TestContentLineParser(t *testing.T) {
+	p := &ContentLineParser{}
+	cur := &FileDiff{Hunks: []Hunk{{}}}
+	var state ParseState
+
+	if err := p.Parse(" hello", cur, &state); err != nil {
+		t.Fatal(err)
+	}
+	if len(cur.Hunks[0].Lines) != 1 {
+		t.Fatalf("expected 1 line, got %d", len(cur.Hunks[0].Lines))
+	}
+	if cur.Hunks[0].Lines[0].Type != LineContext {
+		t.Error("expected context line")
+	}
+
+	if err := p.Parse("+added", cur, &state); err != nil {
+		t.Fatal(err)
+	}
+	if len(cur.Hunks[0].Lines) != 2 {
+		t.Fatalf("expected 2 lines, got %d", len(cur.Hunks[0].Lines))
+	}
+	if cur.Hunks[0].Lines[1].Type != LineAdded {
+		t.Error("expected added line")
+	}
+
+	if err := p.Parse("-deleted", cur, &state); err != nil {
+		t.Fatal(err)
+	}
+	if len(cur.Hunks[0].Lines) != 3 {
+		t.Fatalf("expected 3 lines, got %d", len(cur.Hunks[0].Lines))
+	}
+	if cur.Hunks[0].Lines[2].Type != LineDeleted {
+		t.Error("expected deleted line")
+	}
+}
+
 func TestParseSimpleDiff(t *testing.T) {
 	input := `diff --git a/hello.go b/hello.go
 index abc123..def456 100644
@@ -19,7 +143,7 @@ index abc123..def456 100644
  }
 `
 
-	files, err := parseRawDiff(splitLines(input))
+	files, err := NewUnifiedParser().Parse(input)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +203,7 @@ index 0000000..abc1234
 +
 +func newFunc() {}
 `
-	files, err := parseRawDiff(splitLines(input))
+	files, err := NewUnifiedParser().Parse(input)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +232,7 @@ index abc1234..0000000
 -       fmt.Println("bye")
 -}
 `
-	files, err := parseRawDiff(splitLines(input))
+	files, err := NewUnifiedParser().Parse(input)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +260,7 @@ similarity index 100%
 rename from old.go
 rename to new.go
 `
-	files, err := parseRawDiff(splitLines(input))
+	files, err := NewUnifiedParser().Parse(input)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +287,7 @@ func TestParseBinaryFile(t *testing.T) {
 index abc123..def456 100644
 Binary files a/image.png and b/image.png differ
 `
-	files, err := parseRawDiff(splitLines(input))
+	files, err := NewUnifiedParser().Parse(input)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +300,7 @@ Binary files a/image.png and b/image.png differ
 }
 
 func TestParseEmptyDiff(t *testing.T) {
-	files, err := parseRawDiff([]string{})
+	files, err := NewUnifiedParser().Parse("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,7 +323,7 @@ diff --git a/b.go b/b.go
 -x
 +y
 `
-	files, err := parseRawDiff(splitLines(input))
+	files, err := NewUnifiedParser().Parse(input)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,17 +335,4 @@ diff --git a/b.go b/b.go
 	}
 }
 
-func splitLines(s string) []string {
-	var lines []string
-	start := 0
-	for i := 0; i < len(s); i++ {
-		if s[i] == '\n' {
-			lines = append(lines, s[start:i])
-			start = i + 1
-		}
-	}
-	if start < len(s) {
-		lines = append(lines, s[start:])
-	}
-	return lines
-}
+
