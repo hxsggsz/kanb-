@@ -4,7 +4,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.WindowSizeMsg:
@@ -31,17 +31,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+func (m *model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case keyQuit, keyQuitAlt:
 		return m, tea.Quit
 	}
 
-	switch m.currentScreen {
-	case screenHome:
-		return m.handleHomeKeys(msg)
-	case screenDetail:
-		return m.handleDetailKeys(msg)
+	switch m.screen {
+	case screenDiff:
+		return m.handleDiffKeys(msg)
 	case screenHelp:
 		return m.handleHelpKeys(msg)
 	}
@@ -49,38 +47,13 @@ func (m model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) handleHomeKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case keyUp, keyUpAlt:
-		if m.cursor > 0 {
-			m.cursor--
-		}
-	case keyDown, keyDownAlt:
-		if m.cursor < len(m.items)-1 {
-			m.cursor++
-		}
-	case keyEnter:
-		m.currentScreen = screenDetail
-	case keyHelp:
-		m.currentScreen = screenHelp
-	case keyRefresh:
-		m.loading = true
-		return m, checkServer("https://example.com")
-	}
-
+func (m *model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) handleDetailKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	if msg.String() == keyBack {
-		m.currentScreen = screenHome
-	}
-	return m, nil
-}
-
-func (m model) handleHelpKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+func (m *model) handleHelpKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if msg.String() == keyBack || msg.String() == keyHelp {
-		m.currentScreen = screenHome
+		m.screen = screenDiff
 	}
 	return m, nil
 }

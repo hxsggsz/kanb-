@@ -6,7 +6,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-func (m model) View() tea.View {
+func (m *model) View() tea.View {
 	v := tea.NewView("")
 
 	if m.err != nil {
@@ -18,11 +18,9 @@ func (m model) View() tea.View {
 	v.MouseMode = tea.MouseModeCellMotion
 	v.WindowTitle = "kanba"
 
-	switch m.currentScreen {
-	case screenHome:
-		v.SetContent(m.homeView())
-	case screenDetail:
-		v.SetContent(m.detailView())
+	switch m.screen {
+	case screenDiff:
+		v.SetContent(m.diffView())
 	case screenHelp:
 		v.SetContent(m.helpView())
 	}
@@ -30,54 +28,32 @@ func (m model) View() tea.View {
 	return v
 }
 
-func (m model) homeView() string {
-	s := titleStyle.Render("kanba")
-	s += "\n\n"
-
-	for i, item := range m.items {
-		cursor := "  "
-		if m.cursor == i {
-			cursor = "▸ "
-			s += selectedItemStyle.Render(fmt.Sprintf("%s%s", cursor, item.title)) + "\n"
-		} else {
-			s += itemStyle.Render(fmt.Sprintf("%s%s", cursor, item.title)) + "\n"
-		}
-	}
-
+func (m *model) diffView() string {
 	if m.loading {
-		s += "\n" + spinnerStyle.Render("Loading...") + "\n"
+		return appStyle.Render(spinnerStyle.Render("Loading..."))
 	}
-
-	s += "\n" + helpStyle.Render("↑/k ↓/j • enter • ? help • q/ctrl+c quit")
-	return appStyle.Render(s)
+	return appStyle.Render(m.diffsView())
 }
 
-func (m model) detailView() string {
-	if m.cursor < 0 || m.cursor >= len(m.items) {
-		return ""
+func (m *model) diffsView() string {
+	if len(m.diffs) == 0 {
+		return "No changes"
 	}
-
-	item := m.items[m.cursor]
-	content := titleStyle.Render(item.title) + "\n\n"
-	content += detailStyle.Render(item.description)
-	content += "\n\n" + helpStyle.Render("esc to go back")
-
-	return appStyle.Render(content)
+	return titleStyle.Render("kanba")
 }
 
-func (m model) helpView() string {
+func (m *model) helpView() string {
 	content := titleStyle.Render("Help") + "\n\n"
 
 	bindings := []struct {
 		key  string
 		desc string
 	}{
-		{"↑/k", "Move cursor up"},
-		{"↓/j", "Move cursor down"},
-		{"enter", "Select item"},
-		{"esc", "Go back"},
+		{"↑/k", "Scroll up"},
+		{"↓/j", "Scroll down"},
+		{"n/p", "Next/prev file"},
+		{"g/G", "Top/bottom"},
 		{"?", "Toggle help"},
-		{"r", "Refresh"},
 		{"q/ctrl+c", "Quit"},
 	}
 
