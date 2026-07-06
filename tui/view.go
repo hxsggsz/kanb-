@@ -139,7 +139,7 @@ func (m *model) helpView() string {
 		{"q/ctrl+c", "Quit"},
 	}
 	for _, b := range bindings {
-		content.WriteString(fmt.Sprintf("  %-12s %s\n", b.key, b.desc))
+		fmt.Fprintf(&content, "  %-12s %s\n", b.key, b.desc)
 	}
 	return helpStyle.Render(content.String())
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/alecthomas/chroma/v2/lexers"
 )
 
-var syntaxFormatter = formatters.TTY8
+var syntaxFormatter = formatters.Get("terminal16")
 var syntaxStyle = buildTerminalStyle()
 
 // buildTerminalStyle creates a chroma style using hex values that map
@@ -34,6 +34,18 @@ func buildTerminalStyle() *chroma.Style {
 	add(chroma.CommentSingle, "#00007f")
 	add(chroma.CommentPreproc, "#00007f")
 	add(chroma.Operator, "#ffff00")
+	add(chroma.Keyword, "#ffff00")
+	add(chroma.KeywordNamespace, "#00ffff")
+	add(chroma.KeywordType, "#0000ff")
+	add(chroma.KeywordDeclaration, "#ffff00") // Added for safer variable/func keywords
+
+	add(chroma.Comment, "#00007f")
+	add(chroma.CommentSingle, "#00007f")
+	add(chroma.CommentMultiline, "#00007f") // Added for block comments
+
+	add(chroma.LiteralString, "#ff00ff")
+	add(chroma.LiteralStringDouble, "#ff00ff") // Added
+	add(chroma.LiteralStringSingle, "#ff00ff") // Added
 	s, err := b.Build()
 	if err != nil {
 		panic(err)
@@ -65,6 +77,7 @@ func (sh *SyntaxHighlighter) Highlight(code, filePath string) string {
 		return code
 	}
 	var buf strings.Builder
+
 	if err := syntaxFormatter.Format(&buf, syntaxStyle, tokens); err != nil {
 		return code
 	}
