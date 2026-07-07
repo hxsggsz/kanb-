@@ -81,7 +81,14 @@ func (m *model) renderFile(f git.SideBySideDiff, width int, vis int) string {
 
 	m.scroller.UpdateScroll(total, vis)
 
-	colWidth := (width - 3) / 2
+	singlePanel := f.Status == "A"
+
+	var colWidth int
+	if singlePanel {
+		colWidth = width
+	} else {
+		colWidth = (width - 3) / 2
+	}
 
 	// clamp horizontal scroll to file's longest content width
 	contentWidth := maxFileContentWidth(f)
@@ -95,21 +102,11 @@ func (m *model) renderFile(f git.SideBySideDiff, width int, vis int) string {
 	var lines []string
 	lineIdx := 0
 	for _, h := range f.Hunks {
-		if lineIdx >= start && lineIdx < end {
-			cursor := lineIdx == m.scroller.CursorLine()
-			line := hunkHeaderStyle.Render(h.Header)
-			if cursor {
-				line = lineCursorStyle.Width(width).Render(line)
-			}
-			lines = append(lines, line)
-		}
-		lineIdx++
-
 		for _, ln := range h.Lines {
 			if lineIdx >= start && lineIdx < end {
 				cursor := lineIdx == m.scroller.CursorLine()
 				fmtr := defaultFormatters[ln.Kind]
-				lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll))
+				lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel))
 			}
 			lineIdx++
 		}

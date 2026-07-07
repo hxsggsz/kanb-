@@ -32,10 +32,6 @@ var (
 	lineNumStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#888888"))
 
-	hunkHeaderStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#8888FF")).
-			Bold(true)
-
 	statusBarStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FAFAFA")).
 			Background(lipgloss.Color("#333333")).
@@ -52,9 +48,6 @@ var (
 	loadingStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#7D56F4")).
 			Padding(2, 4)
-
-	lineCursorStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("#444444"))
 
 	sidebarDirStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#666666")).

@@ -74,7 +74,7 @@ func TestCursorStopsAtReturnZero(t *testing.T) {
 		},
 	}
 
-	totalLines := 1 + len(h1Lines) + 1 + len(h2Lines)
+	totalLines := len(h1Lines) + len(h2Lines)
 	t.Logf("h1Lines=%d, h2Lines=%d, totalLines=%d", len(h1Lines), len(h2Lines), totalLines)
 
 	for height := 12; height <= 40; height++ {

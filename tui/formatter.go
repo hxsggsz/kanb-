@@ -68,7 +68,7 @@ func NewDefaultFormatters() map[git.LineKind]LineFormatter {
 
 }
 
-func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor bool, sh *SyntaxHighlighter, filePath string, hScroll int) string {
+func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor bool, sh *SyntaxHighlighter, filePath string, hScroll int, singlePanel bool) string {
 	oldNum := ""
 	if ln.OldLineNum > 0 {
 		oldNum = strconv.Itoa(ln.OldLineNum)
@@ -93,6 +93,15 @@ func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor
 	}
 	leftContent = ansi.Cut(leftContent, hScroll, hScroll+contentAreaWidth)
 	rightContent = ansi.Cut(rightContent, hScroll, hScroll+contentAreaWidth)
+
+	if singlePanel {
+		rightLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, newNum, f.RightPrefix(ln), rightContent)
+		rightRendered := f.RightStyle(ln, cursor).Render(rightLine)
+		if sh != nil {
+			rightRendered = renderLineWithHighlight(rightRendered, colWidth, ln.Kind, false, cursor)
+		}
+		return rightRendered
+	}
 
 	leftLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, oldNum, f.LeftPrefix(ln), leftContent)
 	rightLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, newNum, f.RightPrefix(ln), rightContent)

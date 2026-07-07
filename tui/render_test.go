@@ -17,7 +17,7 @@ func TestRenderAlignedLinePreservesANSI(t *testing.T) {
 		Kind:       git.KindContext,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := 		renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0)
+	result := 		renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false)
 	if !strings.Contains(result, "\x1b[") {
 		t.Fatal("expected ANSI escape codes in rendered output")
 	}
@@ -31,7 +31,7 @@ func TestRenderAlignedLineAddsBackground(t *testing.T) {
 		Kind:       git.KindAdded,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := 		renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0)
+	result := 		renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false)
 
 	rightBG := "\x1b[48;5;22m"
 	if !strings.Contains(result, rightBG) {
@@ -61,7 +61,7 @@ func TestRenderAlignedLineDeletedBackground(t *testing.T) {
 		Kind:       git.KindDeleted,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := 		renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0)
+	result := 		renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false)
 
 	leftBG := "\x1b[48;5;52m"
 	if !strings.Contains(result, leftBG) {
@@ -70,5 +70,28 @@ func TestRenderAlignedLineDeletedBackground(t *testing.T) {
 
 	if !strings.HasPrefix(result, leftBG) {
 		t.Fatalf("expected result to start with red background %s, got: %q", leftBG, result[:20])
+	}
+}
+
+func TestRenderAlignedLineSinglePanel(t *testing.T) {
+	sh := NewSyntaxHighlighter()
+	ln := git.AlignedLine{
+		NewLineNum: 1,
+		NewContent: "func main() {",
+		Kind:       git.KindAdded,
+	}
+	fmtr := defaultFormatters[ln.Kind]
+	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, true)
+
+	if strings.Contains(result, " │ ") {
+		t.Fatal("single-panel result should not contain separator")
+	}
+
+	if !strings.Contains(result, "\x1b[48;5;22m") {
+		t.Fatal("expected green background for added line")
+	}
+
+	if !strings.Contains(result, "   1 + ") {
+		t.Fatalf("expected line to contain right-side format, got: %q", result)
 	}
 }

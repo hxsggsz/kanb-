@@ -42,23 +42,23 @@ func TestCursorAtEndOfFile(t *testing.T) {
 	}
 
 	nav(5)
-	if m.scroller.CursorLine() != 5 {
-		t.Fatalf("expected cursorLine=5, got %d", m.scroller.CursorLine())
+	if m.scroller.CursorLine() != 4 {
+		t.Fatalf("expected cursorLine=4, got %d", m.scroller.CursorLine())
 	}
 
 	nav(1)
-	if m.scroller.CursorLine() != 5 {
-		t.Fatalf("cursor moved past end: expected 5, got %d", m.scroller.CursorLine())
+	if m.scroller.CursorLine() != 4 {
+		t.Fatalf("cursor moved past end: expected 4, got %d", m.scroller.CursorLine())
 	}
 
 	nav(100)
-	if m.scroller.CursorLine() != 5 {
-		t.Fatalf("cursor moved past end after 100 presses: expected 5, got %d", m.scroller.CursorLine())
+	if m.scroller.CursorLine() != 4 {
+		t.Fatalf("cursor moved past end after 100 presses: expected 4, got %d", m.scroller.CursorLine())
 	}
 
 	m.renderFile(f, 80, m.visibleLines())
-	if m.scroller.CursorLine() != 5 {
-		t.Fatalf("renderFile changed cursorLine: expected 5, got %d", m.scroller.CursorLine())
+	if m.scroller.CursorLine() != 4 {
+		t.Fatalf("renderFile changed cursorLine: expected 4, got %d", m.scroller.CursorLine())
 	}
 	if m.scroller.CursorLine() >= m.totalLines() {
 		t.Fatalf("cursorLine %d >= totalLines %d after renderFile", m.scroller.CursorLine(), m.totalLines())
@@ -89,7 +89,7 @@ func TestScrollAdvancesWithCursor(t *testing.T) {
 	}
 
 	total := m.totalLines()
-	t.Logf("totalLines: %d, expected: %d", total, 201)
+	t.Logf("totalLines: %d, expected: %d", total, 200)
 
 	vis := m.visibleLines()
 

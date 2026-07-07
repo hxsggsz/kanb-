@@ -15,7 +15,6 @@ const (
 const (
 	statusBarHeight = 1
 	borderHeight    = 2
-	hunkHeaderLines = 1
 	lineNumColWidth = 4
 )
 
@@ -50,7 +49,7 @@ func (m *model) totalLines() int {
 	f := m.diffs[m.fileIdx]
 	total := 0
 	for _, h := range f.Hunks {
-		total += hunkHeaderLines + len(h.Lines)
+		total += len(h.Lines)
 	}
 	return total
 }
