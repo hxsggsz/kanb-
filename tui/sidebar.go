@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"charm.land/lipgloss/v2"
 	"kanba/git"
 )
 
@@ -22,15 +23,17 @@ type Sidebar struct {
 	width         int
 	maxLines      int
 	contentHeight int
+	theme         Theme
 }
 
-func NewSidebar(files []git.SideBySideDiff, fileIdx int, width int, height int) *Sidebar {
+func NewSidebar(files []git.SideBySideDiff, fileIdx int, width int, height int, theme Theme) *Sidebar {
 	maxLines := max(height-statusBarHeight, 1)
 	return &Sidebar{
 		files:    files,
 		fileIdx:  fileIdx,
 		width:    width,
 		maxLines: maxLines,
+		theme:    theme,
 	}
 }
 
@@ -56,13 +59,30 @@ func (s *Sidebar) Render() string {
 
 	availableWidth := s.width - 3
 
+	sidebarStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderRight(true).
+		BorderLeft(false).
+		BorderTop(false).
+		BorderBottom(false).
+		Padding(0, 1)
+
+	sidebarFile := lipgloss.NewStyle().PaddingLeft(1)
+	sidebarFileSelected := lipgloss.NewStyle().
+		PaddingLeft(0).
+		Foreground(lipgloss.Color(s.theme.SidebarSelected)).
+		Bold(true)
+	sidebarDirStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color(s.theme.SidebarDir)).
+		PaddingLeft(1)
+
 	var sb strings.Builder
 	lineCount := 0
 	for _, e := range visible {
 		if e.isDir {
 			sb.WriteString(sidebarDirStyle.Render(truncate(e.dir, availableWidth)) + "\n")
 		} else {
-			statusColor := statusColorFor(e.file.Status)
+			statusColor := statusColorFor(e.file.Status, s.theme)
 			_, filename := filepath.Split(e.file.NewPath)
 			if e.fileIdx == s.fileIdx {
 				label := fmt.Sprintf("%s %s", statusColor.Render(e.file.Status), truncate(filename, availableWidth-4))

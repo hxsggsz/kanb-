@@ -40,6 +40,7 @@ type model struct {
 	repoPath    string
 	gitArgs     []string
 	highlighter *SyntaxHighlighter
+	theme       Theme
 }
 
 func (m *model) totalLines() int {
@@ -53,6 +54,7 @@ func New(repoPath string, gitArgs []string) tea.Model {
 		loading:     true,
 		scroller:    NewScroller(),
 		highlighter: NewSyntaxHighlighter(),
+		theme:       RosePine,
 	}
 }
 

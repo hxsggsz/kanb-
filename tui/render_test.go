@@ -17,7 +17,7 @@ func TestRenderAlignedLinePreservesANSI(t *testing.T) {
 		Kind:       git.KindContext,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := 		renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false)
+	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, RosePine)
 	if !strings.Contains(result, "\x1b[") {
 		t.Fatal("expected ANSI escape codes in rendered output")
 	}
@@ -31,11 +31,11 @@ func TestRenderAlignedLineAddsBackground(t *testing.T) {
 		Kind:       git.KindAdded,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := 		renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false)
+	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, RosePine)
 
-	rightBG := "\x1b[48;5;22m"
-	if !strings.Contains(result, rightBG) {
-		t.Fatalf("expected green background (%s) for added line, got: %q", rightBG, result)
+	// RosePine.AddedBg = "#333c48" → 48;2;51;60;72
+	if !strings.Contains(result, "48;2;51;60;72") {
+		t.Fatalf("expected RosePine added background, got: %q", result)
 	}
 
 	sep := " │ "
@@ -44,8 +44,9 @@ func TestRenderAlignedLineAddsBackground(t *testing.T) {
 		t.Fatalf("expected separator %q in result: %q", sep, result)
 	}
 	rightSide := result[idx+len(sep):]
-	if !strings.HasPrefix(rightSide, rightBG) {
-		t.Fatalf("expected right side to start with green background %s, got: %q", rightBG, rightSide[:20])
+	rightPrefix := "\x1b[38;2;156;207;216;48;2;51;60;72m"
+	if !strings.HasPrefix(rightSide, rightPrefix) {
+		t.Fatalf("expected right side to start with %s, got: %q", rightPrefix, rightSide[:50])
 	}
 
 	if !strings.Contains(result, "\x1b[1m") && !strings.Contains(result, "\x1b[3") {
@@ -61,15 +62,16 @@ func TestRenderAlignedLineDeletedBackground(t *testing.T) {
 		Kind:       git.KindDeleted,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := 		renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false)
+	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, RosePine)
 
-	leftBG := "\x1b[48;5;52m"
-	if !strings.Contains(result, leftBG) {
-		t.Fatalf("expected red background (%s) for deleted line, got: %q", leftBG, result)
+	// RosePine.RemovedBg = "#312e3f" → 48;2;49;46;63
+	if !strings.Contains(result, "48;2;49;46;63") {
+		t.Fatalf("expected RosePine removed background, got: %q", result)
 	}
 
-	if !strings.HasPrefix(result, leftBG) {
-		t.Fatalf("expected result to start with red background %s, got: %q", leftBG, result[:20])
+	leftPrefix := "\x1b[38;2;144;140;170;48;2;49;46;63m"
+	if !strings.HasPrefix(result, leftPrefix) {
+		t.Fatalf("expected result to start with %s, got: %q", leftPrefix, result[:50])
 	}
 }
 
@@ -81,14 +83,15 @@ func TestRenderAlignedLineSinglePanel(t *testing.T) {
 		Kind:       git.KindAdded,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, true)
+	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, true, RosePine)
 
 	if strings.Contains(result, " │ ") {
 		t.Fatal("single-panel result should not contain separator")
 	}
 
-	if !strings.Contains(result, "\x1b[48;5;22m") {
-		t.Fatal("expected green background for added line")
+	// RosePine.AddedBg = "#333c48" → 48;2;51;60;72
+	if !strings.Contains(result, "48;2;51;60;72") {
+		t.Fatal("expected RosePine added background")
 	}
 
 	if !strings.Contains(result, "   1 + ") {

@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -68,7 +69,7 @@ func NewDefaultFormatters() map[git.LineKind]LineFormatter {
 
 }
 
-func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor bool, sh *SyntaxHighlighter, filePath string, hScroll int, singlePanel bool) string {
+func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor bool, sh *SyntaxHighlighter, filePath string, hScroll int, singlePanel bool, theme Theme) string {
 	oldNum := ""
 	if ln.OldLineNum > 0 {
 		oldNum = strconv.Itoa(ln.OldLineNum)
@@ -80,13 +81,7 @@ func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor
 
 	leftContent := f.LeftContent(ln)
 	rightContent := f.RightContent(ln)
-	if sh != nil {
-		leftContent = sh.Highlight(leftContent, filePath)
-		rightContent = sh.Highlight(rightContent, filePath)
-	}
 
-	// clip content by hScroll, keeping line numbers and +/- prefix fixed
-	// always clip to prevent overflow into the other panel
 	contentAreaWidth := colWidth - (lineNumColWidth + 3)
 	if contentAreaWidth < 0 {
 		contentAreaWidth = 0
@@ -95,36 +90,56 @@ func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor
 	rightContent = ansi.Cut(rightContent, hScroll, hScroll+contentAreaWidth)
 
 	if singlePanel {
-		rightLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, newNum, f.RightPrefix(ln), rightContent)
-		rightRendered := f.RightStyle(ln, cursor).Render(rightLine)
-		if sh != nil {
-			rightRendered = renderLineWithHighlight(rightRendered, colWidth, ln.Kind, false, cursor)
-		}
-		return rightRendered
+		prefix := fmt.Sprintf("%*s %s ", lineNumColWidth, newNum, f.RightPrefix(ln))
+		return renderStyledLine(prefix, rightContent, colWidth, ln.Kind, false, cursor, sh, filePath, theme)
 	}
 
-	leftLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, oldNum, f.LeftPrefix(ln), leftContent)
-	rightLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, newNum, f.RightPrefix(ln), rightContent)
+	leftPrefix := fmt.Sprintf("%*s %s ", lineNumColWidth, oldNum, f.LeftPrefix(ln))
+	rightPrefix := fmt.Sprintf("%*s %s ", lineNumColWidth, newNum, f.RightPrefix(ln))
 
-	leftRendered := f.LeftStyle(ln, cursor).Render(leftLine)
-	rightRendered := f.RightStyle(ln, cursor).Render(rightLine)
-
-	if sh != nil {
-		leftRendered = renderLineWithHighlight(leftRendered, colWidth, ln.Kind, true, cursor)
-		rightRendered = renderLineWithHighlight(rightRendered, colWidth, ln.Kind, false, cursor)
-	}
+	leftRendered := renderStyledLine(leftPrefix, leftContent, colWidth, ln.Kind, true, cursor, sh, filePath, theme)
+	rightRendered := renderStyledLine(rightPrefix, rightContent, colWidth, ln.Kind, false, cursor, sh, filePath, theme)
 
 	return leftRendered + " │ " + rightRendered
 }
 
-func renderLineWithHighlight(s string, colWidth int, kind git.LineKind, isLeft bool, cursor bool) string {
+func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLeft bool, cursor bool, sh *SyntaxHighlighter, filePath string, theme Theme) string {
+	bgColor := theme.BgFor(kind, isLeft)
+
+	baseStyle := lipgloss.NewStyle()
 	if cursor {
-		s = padToWidth(s, colWidth, "")
-		return injectCursor(s)
+		baseStyle = baseStyle.Background(lipgloss.Color(theme.CursorBgFor(bgColor)))
+	} else if bgColor != "" {
+		baseStyle = baseStyle.Background(lipgloss.Color(bgColor))
 	}
-	bgCode := backgroundFor(kind, isLeft)
-	if bgCode != "" {
-		s = injectBackground(s, bgCode)
+
+	numStyle := lipgloss.NewStyle()
+	if fg := theme.LineNumFg(kind, isLeft); fg != "" {
+		numStyle = numStyle.Foreground(lipgloss.Color(fg))
 	}
-	return padToWidth(s, colWidth, bgCode)
+	if cursor {
+		numStyle = numStyle.Background(lipgloss.Color(theme.CursorBgFor(bgColor)))
+	} else if bgColor != "" {
+		numStyle = numStyle.Background(lipgloss.Color(bgColor))
+	}
+
+	prefixRendered := numStyle.Render(prefix)
+
+	var contentRendered string
+	if sh != nil {
+		contentRendered = sh.HighlightWithStyle(content, filePath, baseStyle)
+	} else if cursor || bgColor != "" {
+		contentRendered = baseStyle.Render(content)
+	} else {
+		contentRendered = content
+	}
+
+	styled := prefixRendered + contentRendered
+	vis := lipgloss.Width(styled)
+	if vis < width {
+		padStyle := baseStyle
+		styled += padStyle.Render(strings.Repeat(" ", width-vis))
+	}
+
+	return styled
 }

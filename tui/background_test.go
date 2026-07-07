@@ -8,74 +8,54 @@ import (
 	"kanba/git"
 )
 
-func TestInjectBackgroundReplacesReset(t *testing.T) {
-	input := "\x1b[33mfunc\x1b[0m \x1b[34mmain\x1b[0m()"
-	result := injectBackground(input, "42")
-	if !strings.Contains(result, "\x1b[0m\x1b[42m") {
-		t.Fatalf("expected \\x1b[0m\\x1b[42m in result, got: %q", result)
-	}
-}
-
-func TestInjectBackgroundEmptyCode(t *testing.T) {
-	input := "hello world"
-	result := injectBackground(input, "")
-	if result != input {
-		t.Fatal("empty bgCode should return unchanged")
-	}
-}
-
-func TestInjectCursorWrapsWithReverse(t *testing.T) {
-	input := "hello"
-	result := injectCursor(input)
-	if !strings.HasPrefix(result, "\x1b[7m") {
-		t.Fatalf("expected \\x1b[7m prefix, got: %q", result)
-	}
-	if !strings.HasSuffix(result, "\x1b[0m") {
-		t.Fatalf("expected \\x1b[0m suffix, got: %q", result)
-	}
-}
-
-func TestPadToWidthAddsBackground(t *testing.T) {
-	input := "hello"
-	result := padToWidth(input, 20, "42")
-	if !strings.HasSuffix(result, "\x1b[0m") {
-		t.Fatalf("expected \\x1b[0m suffix, got: %q", result)
-	}
-	if !strings.Contains(result, "\x1b[42m") {
-		t.Fatalf("expected \\x1b[42m for padding, got: %q", result)
+func TestRenderStyledLineAddsBackground(t *testing.T) {
+	result := renderStyledLine("", "hello", 20, git.KindAdded, false, false, nil, "", RosePine)
+	// RosePine.AddedBg is "#333c48" → 48;2;51;60;72
+	if !strings.Contains(result, "48;2;51;60;72") {
+		t.Fatalf("expected RosePine added background, got: %q", result)
 	}
 	if lipgloss.Width(result) != 20 {
 		t.Fatalf("expected visible width 20, got %d", lipgloss.Width(result))
 	}
 }
 
-func TestPadToWidthNoPaddingNeeded(t *testing.T) {
-	input := "hello world"
-	result := padToWidth(input, 5, "42")
-	if !strings.HasSuffix(result, "\x1b[0m") {
-		t.Fatalf("expected \\x1b[0m suffix even when no padding, got: %q", result)
+func TestRenderStyledLineNoExtraWidth(t *testing.T) {
+	result := renderStyledLine("", "hello world", 5, git.KindContext, false, false, nil, "", RosePine)
+	if lipgloss.Width(result) != 11 {
+		t.Fatalf("expected visible width 11 (no padding needed), got %d", lipgloss.Width(result))
 	}
 }
 
-func TestBackgroundFor(t *testing.T) {
+func TestRenderStyledLineCursorHighlight(t *testing.T) {
+	result := renderStyledLine("", "hello", 10, git.KindContext, false, true, nil, "", RosePine)
+	// RosePine.CursorBg is "#403d52" → 48;2;64;61;82
+	if !strings.Contains(result, "48;2;64;61;82") {
+		t.Fatalf("expected cursor background, got: %q", result)
+	}
+	if lipgloss.Width(result) != 10 {
+		t.Fatalf("expected visible width 10, got %d", lipgloss.Width(result))
+	}
+}
+
+func TestThemeBgFor(t *testing.T) {
 	tests := []struct {
 		kind   git.LineKind
 		isLeft bool
 		expect string
 	}{
 		{git.KindAdded, true, ""},
-		{git.KindAdded, false, "48;5;22"},
-		{git.KindDeleted, true, "48;5;52"},
+		{git.KindAdded, false, "#333c48"},
+		{git.KindDeleted, true, "#312e3f"},
 		{git.KindDeleted, false, ""},
-		{git.KindModified, true, "48;5;52"},
-		{git.KindModified, false, "48;5;22"},
+		{git.KindModified, true, "#312e3f"},
+		{git.KindModified, false, "#333c48"},
 		{git.KindContext, true, ""},
 		{git.KindContext, false, ""},
 	}
 	for _, tt := range tests {
-		got := backgroundFor(tt.kind, tt.isLeft)
+		got := RosePine.BgFor(tt.kind, tt.isLeft)
 		if got != tt.expect {
-			t.Errorf("backgroundFor(%v, %v) = %q, want %q", tt.kind, tt.isLeft, got, tt.expect)
+			t.Errorf("RosePine.BgFor(%v, %v) = %q, want %q", tt.kind, tt.isLeft, got, tt.expect)
 		}
 	}
 }

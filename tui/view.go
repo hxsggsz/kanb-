@@ -38,15 +38,25 @@ func (m *model) View() tea.View {
 }
 
 func (m *model) loadingView() string {
-	return loadingStyle.Render(" Loading diffs...")
+	return lipgloss.NewStyle().
+		Foreground(lipgloss.Color(m.theme.LoadingFg)).
+		Padding(2, 4).
+		Render(" Loading diffs...")
 }
 
 func (m *model) errorView() string {
-	return errorStyle.Render(fmt.Sprintf("Error: %v\n\nPress any key to exit.", m.err))
+	return lipgloss.NewStyle().
+		Foreground(lipgloss.Color(m.theme.ErrorFg)).
+		Bold(true).
+		Padding(2, 4).
+		Render(fmt.Sprintf("Error: %v\n\nPress any key to exit.", m.err))
 }
 
 func (m *model) emptyView() string {
-	return loadingStyle.Render(" No changes to show.")
+	return lipgloss.NewStyle().
+		Foreground(lipgloss.Color(m.theme.LoadingFg)).
+		Padding(2, 4).
+		Render(" No changes to show.")
 }
 
 func (m *model) diffView() string {
@@ -57,7 +67,7 @@ func (m *model) diffView() string {
 	sideWidth := CalculateSideWidth(m.width)
 	cursorFileIdx := m.flatLines[m.scroller.CursorLine()].fileIdx
 
-	sidebar := NewSidebar(m.diffs, cursorFileIdx, sideWidth, m.height)
+	sidebar := NewSidebar(m.diffs, cursorFileIdx, sideWidth, m.height, m.theme)
 	sidebarStr := sidebar.Render()
 
 	contentVis := m.visibleLines()
@@ -65,7 +75,7 @@ func (m *model) diffView() string {
 	content := m.renderContinuous(panelWidth, contentVis)
 
 	f := m.diffs[cursorFileIdx]
-	statusBar := NewStatusBar(f.NewPath, cursorFileIdx, len(m.diffs), m.scroller.CursorLine(), len(m.flatLines), m.width)
+	statusBar := NewStatusBar(f.NewPath, cursorFileIdx, len(m.diffs), m.scroller.CursorLine(), len(m.flatLines), m.width, m.theme)
 
 	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebarStr, content)
 	return fmt.Sprintf("%s\n%s", statusBar.Render(), body)
@@ -107,7 +117,7 @@ func (m *model) renderContinuous(width int, vis int) string {
 				colWidth = (width - 3) / 2
 			}
 
-			lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel))
+			lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel, m.theme))
 		}
 	}
 
@@ -119,7 +129,7 @@ func (m *model) renderFileHeader(fl flatLine, colWidth int, cursor bool) string 
 	stats := m.fileStats[fl.fileIdx]
 	text := fmt.Sprintf(" %s (+%d, -%d)", f.NewPath, stats.added, stats.deleted)
 	if cursor {
-		text = "\x1b[7m" + text + "\x1b[0m"
+		text = lipgloss.NewStyle().Background(lipgloss.Color(m.theme.CursorBg)).Render(text)
 	}
 	if fl.fileIdx > 0 {
 		text = fileHeaderStyle.Render(text)
@@ -127,14 +137,14 @@ func (m *model) renderFileHeader(fl flatLine, colWidth int, cursor bool) string 
 	return text
 }
 
-func statusColorFor(status string) lipgloss.Style {
+func statusColorFor(status string, theme Theme) lipgloss.Style {
 	switch status {
 	case "A":
-		return sidebarStatusAdded
+		return lipgloss.NewStyle().Foreground(lipgloss.Color(theme.SidebarAdded))
 	case "D":
-		return sidebarStatusDeleted
+		return lipgloss.NewStyle().Foreground(lipgloss.Color(theme.SidebarDeleted))
 	default:
-		return sidebarStatusModified
+		return lipgloss.NewStyle().Foreground(lipgloss.Color(theme.SidebarModified))
 	}
 }
 
