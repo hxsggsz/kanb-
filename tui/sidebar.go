@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -24,9 +25,10 @@ type Sidebar struct {
 	maxLines      int
 	contentHeight int
 	theme         Theme
+	stats         []fileStat
 }
 
-func NewSidebar(files []git.SideBySideDiff, fileIdx int, width int, height int, theme Theme) *Sidebar {
+func NewSidebar(files []git.SideBySideDiff, fileIdx int, width int, height int, theme Theme, stats []fileStat) *Sidebar {
 	maxLines := max(height-statusBarHeight, 1)
 	return &Sidebar{
 		files:    files,
@@ -34,6 +36,7 @@ func NewSidebar(files []git.SideBySideDiff, fileIdx int, width int, height int, 
 		width:    width,
 		maxLines: maxLines,
 		theme:    theme,
+		stats:    stats,
 	}
 }
 
@@ -84,11 +87,27 @@ func (s *Sidebar) Render() string {
 		} else {
 			statusColor := statusColorFor(e.file.Status, s.theme)
 			_, filename := filepath.Split(e.file.NewPath)
+
+			addStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(s.theme.SidebarAdded))
+			delStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(s.theme.SidebarDeleted))
+			st := s.stats[e.fileIdx]
+			var statsParts []string
+			if st.added > 0 {
+				statsParts = append(statsParts, addStyle.Render("+"+strconv.Itoa(st.added)))
+			}
+			if st.deleted > 0 {
+				statsParts = append(statsParts, delStyle.Render("-"+strconv.Itoa(st.deleted)))
+			}
+			statsStr := ""
+			if len(statsParts) > 0 {
+				statsStr = " (" + strings.Join(statsParts, ", ") + ")"
+			}
+
 			if e.fileIdx == s.fileIdx {
-				label := fmt.Sprintf("%s %s", statusColor.Render(e.file.Status), truncate(filename, availableWidth-4))
+				label := fmt.Sprintf("%s %s%s", statusColor.Render(e.file.Status), truncate(filename, availableWidth-4-lipgloss.Width(statsStr)), statsStr)
 				sb.WriteString(sidebarFileSelected.Render("▸ "+label) + "\n")
 			} else {
-				label := fmt.Sprintf("%s %s", statusColor.Render(e.file.Status), truncate(filename, availableWidth-5))
+				label := fmt.Sprintf("%s %s%s", statusColor.Render(e.file.Status), truncate(filename, availableWidth-5-lipgloss.Width(statsStr)), statsStr)
 				sb.WriteString(sidebarFile.Render("  "+label) + "\n")
 			}
 		}

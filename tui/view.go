@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -67,7 +68,7 @@ func (m *model) diffView() string {
 	sideWidth := CalculateSideWidth(m.width)
 	cursorFileIdx := m.flatLines[m.scroller.CursorLine()].fileIdx
 
-	sidebar := NewSidebar(m.diffs, cursorFileIdx, sideWidth, m.height, m.theme)
+	sidebar := NewSidebar(m.diffs, cursorFileIdx, sideWidth, m.height, m.theme, m.fileStats)
 	sidebarStr := sidebar.Render()
 
 	contentVis := m.visibleLines()
@@ -127,14 +128,37 @@ func (m *model) renderContinuous(width int, vis int) string {
 func (m *model) renderFileHeader(fl flatLine, colWidth int, cursor bool) string {
 	f := m.diffs[fl.fileIdx]
 	stats := m.fileStats[fl.fileIdx]
-	text := fmt.Sprintf(" %s (+%d, -%d)", f.NewPath, stats.added, stats.deleted)
-	if cursor {
-		text = lipgloss.NewStyle().Background(lipgloss.Color(m.theme.CursorBg)).Render(text)
+
+	addStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(m.theme.SidebarAdded))
+	delStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(m.theme.SidebarDeleted))
+
+	var parts []string
+	if stats.added > 0 {
+		parts = append(parts, addStyle.Render("+"+strconv.Itoa(stats.added)))
 	}
+	if stats.deleted > 0 {
+		parts = append(parts, delStyle.Render("-"+strconv.Itoa(stats.deleted)))
+	}
+
+	statsStr := strings.Join(parts, ", ")
+	if statsStr != "" {
+		statsStr = " (" + statsStr + ")"
+	}
+	text := fmt.Sprintf(" %s%s", f.NewPath, statsStr)
+
+	style := lipgloss.NewStyle()
 	if fl.fileIdx > 0 {
-		text = fileHeaderStyle.Render(text)
+		style = style.
+			MarginTop(1).
+			BorderTop(true).
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color(m.theme.BorderColor))
 	}
-	return text
+	style = style.Padding(1, 1).Width(colWidth)
+	if cursor {
+		style = style.Background(lipgloss.Color(m.theme.CursorBg))
+	}
+	return style.Render(text)
 }
 
 func statusColorFor(status string, theme Theme) lipgloss.Style {

@@ -100,16 +100,39 @@ func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor
 	leftRendered := renderStyledLine(leftPrefix, leftContent, colWidth, ln.Kind, true, cursor, sh, filePath, theme)
 	rightRendered := renderStyledLine(rightPrefix, rightContent, colWidth, ln.Kind, false, cursor, sh, filePath, theme)
 
-	return leftRendered + " │ " + rightRendered
+	sep := styledSep(ln.Kind, cursor, theme)
+	return leftRendered + sep + rightRendered
+}
+
+func styledSep(kind git.LineKind, cursor bool, theme Theme) string {
+	bg := theme.BgFor(kind, true)
+	if bg == "" {
+		bg = theme.PanelBg
+	}
+	s := lipgloss.NewStyle()
+	if cursor {
+		s = s.Background(lipgloss.Color(theme.CursorBgFor(bg)))
+	} else {
+		s = s.Background(lipgloss.Color(bg))
+	}
+	return s.Render(" │ ")
 }
 
 func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLeft bool, cursor bool, sh *SyntaxHighlighter, filePath string, theme Theme) string {
 	bgColor := theme.BgFor(kind, isLeft)
+	if bgColor == "" {
+		bgColor = theme.PanelBg
+	}
+
+	numBg := bgColor
+	if kind == git.KindContext {
+		numBg = theme.LineNumberBg
+	}
 
 	baseStyle := lipgloss.NewStyle()
 	if cursor {
 		baseStyle = baseStyle.Background(lipgloss.Color(theme.CursorBgFor(bgColor)))
-	} else if bgColor != "" {
+	} else {
 		baseStyle = baseStyle.Background(lipgloss.Color(bgColor))
 	}
 
@@ -118,9 +141,9 @@ func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLe
 		numStyle = numStyle.Foreground(lipgloss.Color(fg))
 	}
 	if cursor {
-		numStyle = numStyle.Background(lipgloss.Color(theme.CursorBgFor(bgColor)))
-	} else if bgColor != "" {
-		numStyle = numStyle.Background(lipgloss.Color(bgColor))
+		numStyle = numStyle.Background(lipgloss.Color(theme.CursorBgFor(numBg)))
+	} else {
+		numStyle = numStyle.Background(lipgloss.Color(numBg))
 	}
 
 	prefixRendered := numStyle.Render(prefix)

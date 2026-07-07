@@ -39,14 +39,13 @@ func TestRenderAlignedLineAddsBackground(t *testing.T) {
 	}
 
 	sep := " │ "
-	idx := strings.Index(result, sep)
-	if idx < 0 {
+	if !strings.Contains(result, sep) {
 		t.Fatalf("expected separator %q in result: %q", sep, result)
 	}
-	rightSide := result[idx+len(sep):]
+
 	rightPrefix := "\x1b[38;2;156;207;216;48;2;51;60;72m"
-	if !strings.HasPrefix(rightSide, rightPrefix) {
-		t.Fatalf("expected right side to start with %s, got: %q", rightPrefix, rightSide[:50])
+	if !strings.Contains(result, rightPrefix) {
+		t.Fatalf("expected right panel to contain %s, got: %q", rightPrefix, result)
 	}
 
 	if !strings.Contains(result, "\x1b[1m") && !strings.Contains(result, "\x1b[3") {
@@ -70,8 +69,8 @@ func TestRenderAlignedLineDeletedBackground(t *testing.T) {
 	}
 
 	leftPrefix := "\x1b[38;2;144;140;170;48;2;49;46;63m"
-	if !strings.HasPrefix(result, leftPrefix) {
-		t.Fatalf("expected result to start with %s, got: %q", leftPrefix, result[:50])
+	if !strings.Contains(result, leftPrefix) {
+		t.Fatalf("expected result to contain %s, got: %q", leftPrefix, result)
 	}
 }
 

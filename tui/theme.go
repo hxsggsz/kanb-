@@ -9,6 +9,10 @@ type Theme struct {
 	ModifiedAddedBg   string
 	ModifiedRemovedBg string
 
+	// Panel backgrounds
+	PanelBg       string
+	LineNumberBg  string
+
 	// Diff foregrounds (line numbers, signs)
 	AddedSign   string
 	RemovedSign string
@@ -29,8 +33,9 @@ type Theme struct {
 	StatusBarFg string
 
 	// General UI
-	ErrorFg   string
-	LoadingFg string
+	ErrorFg     string
+	LoadingFg   string
+	BorderColor string
 }
 
 var RosePine = Theme{
@@ -38,10 +43,14 @@ var RosePine = Theme{
 	RemovedBg:         "#312e3f",
 	ModifiedAddedBg:   "#333c48",
 	ModifiedRemovedBg: "#312e3f",
-	AddedSign:         "#9ccfd8",
-	RemovedSign:       "#908caa",
-	ContextFg:         "#6e6a86",
-	CursorBg:          "#403d52",
+
+	PanelBg:      "#1f1d2e",
+	LineNumberBg: "#26233a",
+
+	AddedSign:   "#9ccfd8",
+	RemovedSign: "#908caa",
+	ContextFg:   "#6e6a86",
+	CursorBg:    "#403d52",
 
 	SidebarSelected: "#c4a7e7",
 	SidebarAdded:    "#9ccfd8",
@@ -52,8 +61,9 @@ var RosePine = Theme{
 	StatusBarBg: "#26233a",
 	StatusBarFg: "#e0def4",
 
-	ErrorFg:   "#eb6f92",
-	LoadingFg: "#c4a7e7",
+	ErrorFg:     "#eb6f92",
+	LoadingFg:   "#c4a7e7",
+	BorderColor: "#e0def4",
 }
 
 func (t Theme) BgFor(kind git.LineKind, isLeft bool) string {

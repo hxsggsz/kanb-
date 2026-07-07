@@ -28,9 +28,9 @@ func TestRenderStyledLineNoExtraWidth(t *testing.T) {
 
 func TestRenderStyledLineCursorHighlight(t *testing.T) {
 	result := renderStyledLine("", "hello", 10, git.KindContext, false, true, nil, "", RosePine)
-	// RosePine.CursorBg is "#403d52" → 48;2;64;61;82
-	if !strings.Contains(result, "48;2;64;61;82") {
-		t.Fatalf("expected cursor background, got: %q", result)
+	// Cursor bg on context = CursorBgFor(PanelBg) = blendHex("#403d52", "#1f1d2e", 0.75) → 48;2;56;53;73
+	if !strings.Contains(result, "48;2;56;53;73") {
+		t.Fatalf("expected cursor background blended over panel, got: %q", result)
 	}
 	if lipgloss.Width(result) != 10 {
 		t.Fatalf("expected visible width 10, got %d", lipgloss.Width(result))
