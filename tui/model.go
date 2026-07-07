@@ -1,6 +1,7 @@
 package tui
 
 import (
+	models "kanba/tui/models"
 	tea "charm.land/bubbletea/v2"
 	"kanba/git"
 )
@@ -13,7 +14,7 @@ const (
 )
 
 const (
-	statusBarHeight = 1
+	statusBarHeight = 3
 	lineNumColWidth = 4
 )
 
@@ -37,24 +38,39 @@ type model struct {
 	width       int
 	height      int
 
-	repoPath    string
-	gitArgs     []string
-	highlighter *SyntaxHighlighter
-	theme       Theme
+	repoPath     string
+	gitArgs      []string
+	highlighter  *SyntaxHighlighter
+	themeModal   *models.Modal
 }
 
 func (m *model) totalLines() int {
 	return len(m.flatLines)
 }
 
+func (m *model) currentTheme() models.Theme {
+	if m.themeModal != nil {
+		return models.GetTheme(m.themeModal.Selected)
+	}
+	return models.GetTheme("rose-pine")
+}
+
 func New(repoPath string, gitArgs []string) tea.Model {
+	themeItems := make([]models.ModalItem, 0, len(models.Themes))
+	for _, k := range models.SortedThemeKeys() {
+		t := models.Themes[k]
+		themeItems = append(themeItems, models.ModalItem{Key: k, Label: t.Name})
+	}
+	themeModal := models.NewModal("Theme", themeItems)
+	themeModal.Selected = "rose-pine"
+
 	return &model{
 		repoPath:    repoPath,
 		gitArgs:     gitArgs,
 		loading:     true,
 		scroller:    NewScroller(),
 		highlighter: NewSyntaxHighlighter(),
-		theme:       RosePine,
+		themeModal:  themeModal,
 	}
 }
 

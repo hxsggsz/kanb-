@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	models "kanba/tui/models"
+
 	"kanba/git"
 )
 
@@ -17,7 +19,7 @@ func TestRenderAlignedLinePreservesANSI(t *testing.T) {
 		Kind:       git.KindContext,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, RosePine)
+	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
 	if !strings.Contains(result, "\x1b[") {
 		t.Fatal("expected ANSI escape codes in rendered output")
 	}
@@ -31,11 +33,10 @@ func TestRenderAlignedLineAddsBackground(t *testing.T) {
 		Kind:       git.KindAdded,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, RosePine)
+	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
 
-	// RosePine.AddedBg = "#333c48" → 48;2;51;60;72
 	if !strings.Contains(result, "48;2;51;60;72") {
-		t.Fatalf("expected RosePine added background, got: %q", result)
+		t.Fatalf("expected added background, got: %q", result)
 	}
 
 	sep := " │ "
@@ -61,14 +62,13 @@ func TestRenderAlignedLineDeletedBackground(t *testing.T) {
 		Kind:       git.KindDeleted,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, RosePine)
+	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
 
-	// RosePine.RemovedBg = "#312e3f" → 48;2;49;46;63
-	if !strings.Contains(result, "48;2;49;46;63") {
-		t.Fatalf("expected RosePine removed background, got: %q", result)
+	if !strings.Contains(result, "48;2;67;41;58") {
+		t.Fatalf("expected removed background, got: %q", result)
 	}
 
-	leftPrefix := "\x1b[38;2;144;140;170;48;2;49;46;63m"
+	leftPrefix := "\x1b[38;2;235;111;146;48;2;67;41;58m"
 	if !strings.Contains(result, leftPrefix) {
 		t.Fatalf("expected result to contain %s, got: %q", leftPrefix, result)
 	}
@@ -82,15 +82,14 @@ func TestRenderAlignedLineSinglePanel(t *testing.T) {
 		Kind:       git.KindAdded,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, true, RosePine)
+	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, true, models.GetTheme("rose-pine"))
 
 	if strings.Contains(result, " │ ") {
 		t.Fatal("single-panel result should not contain separator")
 	}
 
-	// RosePine.AddedBg = "#333c48" → 48;2;51;60;72
 	if !strings.Contains(result, "48;2;51;60;72") {
-		t.Fatal("expected RosePine added background")
+		t.Fatal("expected added background")
 	}
 
 	if !strings.Contains(result, "   1 + ") {

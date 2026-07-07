@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	models "kanba/tui/models"
+
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"kanba/git"
@@ -69,7 +71,7 @@ func NewDefaultFormatters() map[git.LineKind]LineFormatter {
 
 }
 
-func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor bool, sh *SyntaxHighlighter, filePath string, hScroll int, singlePanel bool, theme Theme) string {
+func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor bool, sh *SyntaxHighlighter, filePath string, hScroll int, singlePanel bool, theme models.Theme) string {
 	oldNum := ""
 	if ln.OldLineNum > 0 {
 		oldNum = strconv.Itoa(ln.OldLineNum)
@@ -104,7 +106,7 @@ func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor
 	return leftRendered + sep + rightRendered
 }
 
-func styledSep(kind git.LineKind, cursor bool, theme Theme) string {
+func styledSep(kind git.LineKind, cursor bool, theme models.Theme) string {
 	bg := theme.BgFor(kind, true)
 	if bg == "" {
 		bg = theme.PanelBg
@@ -118,7 +120,7 @@ func styledSep(kind git.LineKind, cursor bool, theme Theme) string {
 	return s.Render(" │ ")
 }
 
-func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLeft bool, cursor bool, sh *SyntaxHighlighter, filePath string, theme Theme) string {
+func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLeft bool, cursor bool, sh *SyntaxHighlighter, filePath string, theme models.Theme) string {
 	bgColor := theme.BgFor(kind, isLeft)
 	if bgColor == "" {
 		bgColor = theme.PanelBg

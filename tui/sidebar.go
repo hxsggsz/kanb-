@@ -7,6 +7,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	models "kanba/tui/models"
+
 	"charm.land/lipgloss/v2"
 	"kanba/git"
 )
@@ -24,11 +26,11 @@ type Sidebar struct {
 	width         int
 	maxLines      int
 	contentHeight int
-	theme         Theme
+	theme         models.Theme
 	stats         []fileStat
 }
 
-func NewSidebar(files []git.SideBySideDiff, fileIdx int, width int, height int, theme Theme, stats []fileStat) *Sidebar {
+func NewSidebar(files []git.SideBySideDiff, fileIdx int, width int, height int, theme models.Theme, stats []fileStat) *Sidebar {
 	maxLines := max(height-statusBarHeight, 1)
 	return &Sidebar{
 		files:    files,
@@ -68,6 +70,8 @@ func (s *Sidebar) Render() string {
 		BorderLeft(false).
 		BorderTop(false).
 		BorderBottom(false).
+		BorderForeground(lipgloss.Color(s.theme.BorderColor)).
+		Background(lipgloss.Color(s.theme.PanelBg)).
 		Padding(0, 1)
 
 	sidebarFile := lipgloss.NewStyle().PaddingLeft(1)

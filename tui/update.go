@@ -34,6 +34,15 @@ func (m *model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
+	if m.themeModal.Active {
+		switch msg.String() {
+		case keyQuit, keyQuitAlt:
+			m.themeModal.Close()
+			return m, nil
+		}
+		return m.handleThemeModalKeys(msg)
+	}
+
 	switch msg.String() {
 	case keyQuit, keyQuitAlt:
 		return m, tea.Quit
@@ -97,9 +106,25 @@ func (m *model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 	case keyHelp:
 		m.screen = screenHelp
+
+	case keyTheme:
+		m.themeModal.Active = true
+		m.themeModal.SyncCursor(m.themeModal.Selected)
 	}
 
 	return m, nil
 }
 
-
+func (m *model) handleThemeModalKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case keyUp, keyUpAlt:
+		m.themeModal.MoveUp()
+	case keyDown, keyDownAlt:
+		m.themeModal.MoveDown()
+	case "enter":
+		m.themeModal.Select()
+	case keyTheme, keyBack, keyQuitAlt:
+		m.themeModal.Close()
+	}
+	return m, nil
+}

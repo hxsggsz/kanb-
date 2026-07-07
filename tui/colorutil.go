@@ -170,37 +170,3 @@ func clamp(v float64) uint8 {
 	}
 	return uint8(math.Round(v))
 }
-
-func hexToRGB(hex string) (r, g, b float64) {
-	hex = strings.TrimPrefix(hex, "#")
-	if len(hex) != 6 {
-		return 0, 0, 0
-	}
-	ri, _ := strconv.ParseUint(hex[0:2], 16, 8)
-	gi, _ := strconv.ParseUint(hex[2:4], 16, 8)
-	bi, _ := strconv.ParseUint(hex[4:6], 16, 8)
-	return float64(ri), float64(gi), float64(bi)
-}
-
-func rgbToHex(r, g, b int) string {
-	return fmt.Sprintf("#%02X%02X%02X", clampF(r), clampF(g), clampF(b))
-}
-
-func clampF(v int) uint8 {
-	if v < 0 {
-		return 0
-	}
-	if v > 255 {
-		return 255
-	}
-	return uint8(v)
-}
-
-func blendHex(fg, bg string, ratio float64) string {
-	r1, g1, b1 := hexToRGB(fg)
-	r2, g2, b2 := hexToRGB(bg)
-	r := r2 + (r1-r2)*ratio
-	g := g2 + (g1-g2)*ratio
-	b := b2 + (b1-b2)*ratio
-	return rgbToHex(int(math.Round(r)), int(math.Round(g)), int(math.Round(b)))
-}

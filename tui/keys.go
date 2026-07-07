@@ -20,4 +20,5 @@ const (
 	keyRightWord = "ctrl+right"
 	keyHome      = "_"
 	keyEnd       = "$"
+	keyTheme     = "t"
 )

@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	models "kanba/tui/models"
+
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"kanba/git"
@@ -39,23 +41,26 @@ func (m *model) View() tea.View {
 }
 
 func (m *model) loadingView() string {
+	theme := m.currentTheme()
 	return lipgloss.NewStyle().
-		Foreground(lipgloss.Color(m.theme.LoadingFg)).
+		Foreground(lipgloss.Color(theme.LoadingFg)).
 		Padding(2, 4).
 		Render(" Loading diffs...")
 }
 
 func (m *model) errorView() string {
+	theme := m.currentTheme()
 	return lipgloss.NewStyle().
-		Foreground(lipgloss.Color(m.theme.ErrorFg)).
+		Foreground(lipgloss.Color(theme.ErrorFg)).
 		Bold(true).
 		Padding(2, 4).
 		Render(fmt.Sprintf("Error: %v\n\nPress any key to exit.", m.err))
 }
 
 func (m *model) emptyView() string {
+	theme := m.currentTheme()
 	return lipgloss.NewStyle().
-		Foreground(lipgloss.Color(m.theme.LoadingFg)).
+		Foreground(lipgloss.Color(theme.LoadingFg)).
 		Padding(2, 4).
 		Render(" No changes to show.")
 }
@@ -65,10 +70,12 @@ func (m *model) diffView() string {
 		return ""
 	}
 
+	theme := m.currentTheme()
+
 	sideWidth := CalculateSideWidth(m.width)
 	cursorFileIdx := m.flatLines[m.scroller.CursorLine()].fileIdx
 
-	sidebar := NewSidebar(m.diffs, cursorFileIdx, sideWidth, m.height, m.theme, m.fileStats)
+	sidebar := NewSidebar(m.diffs, cursorFileIdx, sideWidth, m.height, theme, m.fileStats)
 	sidebarStr := sidebar.Render()
 
 	contentVis := m.visibleLines()
@@ -76,10 +83,15 @@ func (m *model) diffView() string {
 	content := m.renderContinuous(panelWidth, contentVis)
 
 	f := m.diffs[cursorFileIdx]
-	statusBar := NewStatusBar(f.NewPath, cursorFileIdx, len(m.diffs), m.scroller.CursorLine(), len(m.flatLines), m.width, m.theme)
+	statusBar := NewStatusBar(f.NewPath, cursorFileIdx, len(m.diffs), m.scroller.CursorLine(), len(m.flatLines), m.width, theme)
 
 	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebarStr, content)
-	return fmt.Sprintf("%s\n%s", statusBar.Render(), body)
+	result := fmt.Sprintf("%s\n%s", statusBar.Render(), body)
+
+	theme = m.currentTheme()
+	result = m.themeModal.Overlay(result, theme.PanelBg, theme.SidebarSelected, sideWidth, panelWidth)
+
+	return result
 }
 
 func (m *model) renderContinuous(width int, vis int) string {
@@ -91,6 +103,8 @@ func (m *model) renderContinuous(width int, vis int) string {
 		m.scroller.UpdateScroll(total, vis)
 		return ""
 	}
+
+	theme := m.currentTheme()
 
 	m.scroller.UpdateScroll(total, vis)
 	cursorLine := m.scroller.CursorLine()
@@ -118,7 +132,7 @@ func (m *model) renderContinuous(width int, vis int) string {
 				colWidth = (width - 3) / 2
 			}
 
-			lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel, m.theme))
+			lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel, theme))
 		}
 	}
 
@@ -126,11 +140,12 @@ func (m *model) renderContinuous(width int, vis int) string {
 }
 
 func (m *model) renderFileHeader(fl flatLine, colWidth int, cursor bool) string {
+	theme := m.currentTheme()
 	f := m.diffs[fl.fileIdx]
 	stats := m.fileStats[fl.fileIdx]
 
-	addStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(m.theme.SidebarAdded))
-	delStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(m.theme.SidebarDeleted))
+	addStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(theme.SidebarAdded))
+	delStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(theme.SidebarDeleted))
 
 	var parts []string
 	if stats.added > 0 {
@@ -152,16 +167,16 @@ func (m *model) renderFileHeader(fl flatLine, colWidth int, cursor bool) string 
 			MarginTop(1).
 			BorderTop(true).
 			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.Color(m.theme.BorderColor))
+			BorderForeground(lipgloss.Color(theme.BorderColor))
 	}
 	style = style.Padding(1, 1).Width(colWidth)
 	if cursor {
-		style = style.Background(lipgloss.Color(m.theme.CursorBg))
+		style = style.Background(lipgloss.Color(theme.CursorBg))
 	}
 	return style.Render(text)
 }
 
-func statusColorFor(status string, theme Theme) lipgloss.Style {
+func statusColorFor(status string, theme models.Theme) lipgloss.Style {
 	switch status {
 	case "A":
 		return lipgloss.NewStyle().Foreground(lipgloss.Color(theme.SidebarAdded))
@@ -198,6 +213,7 @@ func (m *model) helpView() string {
 		{"$", "Go to line end"},
 		{"g", "Go to top"},
 		{"G", "Go to bottom"},
+		{"t", "Open theme selector"},
 		{"?", "Toggle help"},
 		{"q/ctrl+c", "Quit"},
 	}
