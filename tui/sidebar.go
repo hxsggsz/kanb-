@@ -25,7 +25,7 @@ type Sidebar struct {
 }
 
 func NewSidebar(files []git.SideBySideDiff, fileIdx int, width int, height int) *Sidebar {
-	maxLines := max(height-(statusBarHeight+borderHeight), 1)
+	maxLines := max(height-statusBarHeight, 1)
 	return &Sidebar{
 		files:    files,
 		fileIdx:  fileIdx,

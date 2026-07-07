@@ -52,4 +52,7 @@ var (
 	sidebarDirStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#666666")).
 			PaddingLeft(1)
+
+	fileHeaderStyle = lipgloss.NewStyle().
+			MarginTop(2)
 )

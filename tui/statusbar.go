@@ -5,6 +5,7 @@ import (
 )
 
 type StatusBar struct {
+	fileName   string
 	fileIdx    int
 	totalFiles int
 	cursorLine int
@@ -12,8 +13,9 @@ type StatusBar struct {
 	width      int
 }
 
-func NewStatusBar(fileIdx, totalFiles, cursorLine, totalLines, width int) *StatusBar {
+func NewStatusBar(fileName string, fileIdx, totalFiles, cursorLine, totalLines, width int) *StatusBar {
 	return &StatusBar{
+		fileName:   fileName,
 		fileIdx:    fileIdx,
 		totalFiles: totalFiles,
 		cursorLine: cursorLine,
@@ -24,6 +26,6 @@ func NewStatusBar(fileIdx, totalFiles, cursorLine, totalLines, width int) *Statu
 
 func (s *StatusBar) Render() string {
 	return statusBarStyle.Width(s.width).Render(
-		fmt.Sprintf(" %d/%d  •  Ln %d/%d  •  ↑↓ cursor  •  n/p file  •  g/G top/bottom  •  ? help  •  q quit",
-			s.fileIdx+1, s.totalFiles, s.cursorLine+1, s.totalLines))
+		fmt.Sprintf(" ▸ %s  •  Ln %d/%d  •  ↑↓ cursor  •  g/G top/bottom  •  ? help  •  q quit",
+			s.fileName, s.cursorLine+1, s.totalLines))
 }

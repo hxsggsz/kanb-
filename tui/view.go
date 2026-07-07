@@ -50,73 +50,81 @@ func (m *model) emptyView() string {
 }
 
 func (m *model) diffView() string {
-	sideWidth := CalculateSideWidth(m.width)
-
-	sidebar := NewSidebar(m.diffs, m.fileIdx, sideWidth, m.height)
-	sidebarStr := sidebar.Render()
-
-	contentVis := max(m.height-sidebar.ContentHeight()-2, 1)
-	panelWidth := max(m.width-sideWidth-panelBorderWidth, panelMinWidth)
-
-	file := m.diffs[m.fileIdx]
-	content := m.renderFile(file, panelWidth, contentVis)
-
-	total := m.totalLines()
-	statusBar := NewStatusBar(m.fileIdx, len(m.diffs), m.scroller.CursorLine(), total, m.width)
-
-	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebarStr, content)
-	return fmt.Sprintf("%s\n%s", body, statusBar.Render())
-}
-
-func (m *model) renderFile(f git.SideBySideDiff, width int, vis int) string {
-	total := m.totalLines()
-	if total == 0 {
+	if len(m.flatLines) == 0 {
 		return ""
 	}
 
+	sideWidth := CalculateSideWidth(m.width)
+	cursorFileIdx := m.flatLines[m.scroller.CursorLine()].fileIdx
+
+	sidebar := NewSidebar(m.diffs, cursorFileIdx, sideWidth, m.height)
+	sidebarStr := sidebar.Render()
+
+	contentVis := m.visibleLines()
+	panelWidth := max(m.width-sideWidth-panelBorderWidth, panelMinWidth)
+	content := m.renderContinuous(panelWidth, contentVis)
+
+	f := m.diffs[cursorFileIdx]
+	statusBar := NewStatusBar(f.NewPath, cursorFileIdx, len(m.diffs), m.scroller.CursorLine(), len(m.flatLines), m.width)
+
+	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebarStr, content)
+	return fmt.Sprintf("%s\n%s", statusBar.Render(), body)
+}
+
+func (m *model) renderContinuous(width int, vis int) string {
+	total := len(m.flatLines)
+	if total == 0 {
+		return ""
+	}
 	if vis <= 0 {
 		m.scroller.UpdateScroll(total, vis)
 		return ""
 	}
 
 	m.scroller.UpdateScroll(total, vis)
-
-	singlePanel := f.Status == "A"
-
-	var colWidth int
-	if singlePanel {
-		colWidth = width
-	} else {
-		colWidth = (width - 3) / 2
-	}
-
-	// clamp horizontal scroll to file's longest content width
-	contentWidth := maxFileContentWidth(f)
-	contentAreaWidth := colWidth - (lineNumColWidth + 3)
-	m.scroller.ClampHScroll(max(0, contentWidth-contentAreaWidth))
-
+	cursorLine := m.scroller.CursorLine()
 	hScroll := m.scroller.HScroll()
+
 	start := m.scroller.Scroll()
-	end := min(start + vis, total)
+	end := min(start+vis, total)
 
 	var lines []string
-	lineIdx := 0
-	for _, h := range f.Hunks {
-		for _, ln := range h.Lines {
-			if lineIdx >= start && lineIdx < end {
-				cursor := lineIdx == m.scroller.CursorLine()
-				fmtr := defaultFormatters[ln.Kind]
-				lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel))
-			}
-			lineIdx++
-		}
+	for gi := start; gi < end; gi++ {
+		fl := m.flatLines[gi]
+		cursor := gi == cursorLine
 
-		if lineIdx >= end {
-			break
+		if fl.isHeader {
+			lines = append(lines, m.renderFileHeader(fl, width, cursor))
+		} else {
+			f := m.diffs[fl.fileIdx]
+			h := f.Hunks[fl.hunkIdx]
+			ln := h.Lines[fl.lineIdx]
+			fmtr := defaultFormatters[ln.Kind]
+
+			singlePanel := f.Status == "A"
+			colWidth := width
+			if !singlePanel {
+				colWidth = (width - 3) / 2
+			}
+
+			lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel))
 		}
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+func (m *model) renderFileHeader(fl flatLine, colWidth int, cursor bool) string {
+	f := m.diffs[fl.fileIdx]
+	stats := m.fileStats[fl.fileIdx]
+	text := fmt.Sprintf(" %s (+%d, -%d)", f.NewPath, stats.added, stats.deleted)
+	if cursor {
+		text = "\x1b[7m" + text + "\x1b[0m"
+	}
+	if fl.fileIdx > 0 {
+		text = fileHeaderStyle.Render(text)
+	}
+	return text
 }
 
 func statusColorFor(status string) lipgloss.Style {
@@ -154,8 +162,6 @@ func (m *model) helpView() string {
 		{"C-←/C-→", "Scroll 32 cols"},
 		{"_", "Go to line start"},
 		{"$", "Go to line end"},
-		{"n", "Next file"},
-		{"p", "Previous file"},
 		{"g", "Go to top"},
 		{"G", "Go to bottom"},
 		{"?", "Toggle help"},

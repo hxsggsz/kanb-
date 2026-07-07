@@ -25,11 +25,12 @@ func TestCursorAtEndOfFile(t *testing.T) {
 	}
 
 	m := &model{
-		diffs:    []git.SideBySideDiff{f},
-		fileIdx:  0,
-		scroller: NewScroller(),
-		width:    80,
-		height:   24,
+		diffs:     []git.SideBySideDiff{f},
+		flatLines: buildFlatLines([]git.SideBySideDiff{f}),
+		fileStats: computeFileStats([]git.SideBySideDiff{f}),
+		scroller:  NewScroller(),
+		width:     80,
+		height:    24,
 	}
 
 	total := m.totalLines()
@@ -42,26 +43,26 @@ func TestCursorAtEndOfFile(t *testing.T) {
 	}
 
 	nav(5)
-	if m.scroller.CursorLine() != 4 {
-		t.Fatalf("expected cursorLine=4, got %d", m.scroller.CursorLine())
+	if m.scroller.CursorLine() != 5 {
+		t.Fatalf("expected cursorLine=5, got %d", m.scroller.CursorLine())
 	}
 
 	nav(1)
-	if m.scroller.CursorLine() != 4 {
-		t.Fatalf("cursor moved past end: expected 4, got %d", m.scroller.CursorLine())
+	if m.scroller.CursorLine() != 5 {
+		t.Fatalf("cursor moved past end: expected 5, got %d", m.scroller.CursorLine())
 	}
 
 	nav(100)
-	if m.scroller.CursorLine() != 4 {
-		t.Fatalf("cursor moved past end after 100 presses: expected 4, got %d", m.scroller.CursorLine())
+	if m.scroller.CursorLine() != 5 {
+		t.Fatalf("cursor moved past end after 100 presses: expected 5, got %d", m.scroller.CursorLine())
 	}
 
-	m.renderFile(f, 80, m.visibleLines())
-	if m.scroller.CursorLine() != 4 {
-		t.Fatalf("renderFile changed cursorLine: expected 4, got %d", m.scroller.CursorLine())
+	m.renderContinuous(80, m.visibleLines())
+	if m.scroller.CursorLine() != 5 {
+		t.Fatalf("renderContinuous changed cursorLine: expected 5, got %d", m.scroller.CursorLine())
 	}
 	if m.scroller.CursorLine() >= m.totalLines() {
-		t.Fatalf("cursorLine %d >= totalLines %d after renderFile", m.scroller.CursorLine(), m.totalLines())
+		t.Fatalf("cursorLine %d >= totalLines %d after renderContinuous", m.scroller.CursorLine(), m.totalLines())
 	}
 }
 
@@ -81,11 +82,12 @@ func TestScrollAdvancesWithCursor(t *testing.T) {
 	}
 
 	m := &model{
-		diffs:    []git.SideBySideDiff{f},
-		fileIdx:  0,
-		scroller: NewScroller(),
-		width:    80,
-		height:   24,
+		diffs:     []git.SideBySideDiff{f},
+		flatLines: buildFlatLines([]git.SideBySideDiff{f}),
+		fileStats: computeFileStats([]git.SideBySideDiff{f}),
+		scroller:  NewScroller(),
+		width:     80,
+		height:    24,
 	}
 
 	total := m.totalLines()
@@ -96,7 +98,7 @@ func TestScrollAdvancesWithCursor(t *testing.T) {
 	for i := 0; i < total-1; i++ {
 		m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
 
-		m.renderFile(f, 80, m.visibleLines())
+		m.renderContinuous(80, m.visibleLines())
 
 		visPos := m.scroller.CursorLine() - m.scroller.Scroll()
 		if visPos < 0 || visPos >= vis {
@@ -133,11 +135,12 @@ func TestScrollDoesNotGetStuck(t *testing.T) {
 	}
 
 	m := &model{
-		diffs:    []git.SideBySideDiff{f},
-		fileIdx:  0,
-		scroller: NewScroller(),
-		width:    80,
-		height:   24,
+		diffs:     []git.SideBySideDiff{f},
+		flatLines: buildFlatLines([]git.SideBySideDiff{f}),
+		fileStats: computeFileStats([]git.SideBySideDiff{f}),
+		scroller:  NewScroller(),
+		width:     80,
+		height:    24,
 	}
 
 	total := m.totalLines()
@@ -154,7 +157,7 @@ func TestScrollDoesNotGetStuck(t *testing.T) {
 			m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
 		}
 
-		m.renderFile(f, 80, m.visibleLines())
+		m.renderContinuous(80, m.visibleLines())
 
 		if m.scroller.CursorLine() >= vis {
 			if m.scroller.Scroll() == lastScroll {
@@ -192,11 +195,12 @@ func TestScrollKeepsCursorInViewForLargeFile(t *testing.T) {
 	}
 
 	m := &model{
-		diffs:    []git.SideBySideDiff{f},
-		fileIdx:  0,
-		scroller: NewScroller(),
-		width:    80,
-		height:   24,
+		diffs:     []git.SideBySideDiff{f},
+		flatLines: buildFlatLines([]git.SideBySideDiff{f}),
+		fileStats: computeFileStats([]git.SideBySideDiff{f}),
+		scroller:  NewScroller(),
+		width:     80,
+		height:    24,
 	}
 
 	total := m.totalLines()
@@ -204,7 +208,7 @@ func TestScrollKeepsCursorInViewForLargeFile(t *testing.T) {
 
 	for i := 0; i < total-1; i++ {
 		m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
-		m.renderFile(f, 80, m.visibleLines())
+		m.renderContinuous(80, m.visibleLines())
 
 		if m.scroller.CursorLine() < m.scroller.Scroll() || m.scroller.CursorLine() >= m.scroller.Scroll()+vis {
 			t.Fatalf("cursorLine=%d outside view [scroll=%d, scroll+vis=%d) at step %d",
@@ -233,11 +237,12 @@ func TestScrollUpFromBottom(t *testing.T) {
 	}
 
 	m := &model{
-		diffs:    []git.SideBySideDiff{f},
-		fileIdx:  0,
-		scroller: NewScroller(),
-		width:    80,
-		height:   24,
+		diffs:     []git.SideBySideDiff{f},
+		flatLines: buildFlatLines([]git.SideBySideDiff{f}),
+		fileStats: computeFileStats([]git.SideBySideDiff{f}),
+		scroller:  NewScroller(),
+		width:     80,
+		height:    24,
 	}
 
 	total := m.totalLines()
@@ -245,13 +250,13 @@ func TestScrollUpFromBottom(t *testing.T) {
 	for i := 0; i < total-1; i++ {
 		m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
 	}
-	m.renderFile(f, 80, m.visibleLines())
+	m.renderContinuous(80, m.visibleLines())
 
 	t.Logf("at bottom: cursorLine=%d, scroll=%d", m.scroller.CursorLine(), m.scroller.Scroll())
 
 	for i := 0; i < total-1; i++ {
 		m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyUp})
-		m.renderFile(f, 80, m.visibleLines())
+		m.renderContinuous(80, m.visibleLines())
 
 		if m.scroller.Scroll() < 0 {
 			t.Fatalf("negative scroll at step %d: %d", i+1, m.scroller.Scroll())
@@ -282,18 +287,19 @@ func TestScrollHysteresisCursorVisiblePosition(t *testing.T) {
 	}
 
 	m := &model{
-		diffs:    []git.SideBySideDiff{f},
-		fileIdx:  0,
-		scroller: NewScroller(),
-		width:    80,
-		height:   24,
+		diffs:     []git.SideBySideDiff{f},
+		flatLines: buildFlatLines([]git.SideBySideDiff{f}),
+		fileStats: computeFileStats([]git.SideBySideDiff{f}),
+		scroller:  NewScroller(),
+		width:     80,
+		height:    24,
 	}
 
 	total := m.totalLines()
 
 	for i := 0; i < total-1; i++ {
 		m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
-		m.renderFile(f, 80, m.visibleLines())
+		m.renderContinuous(80, m.visibleLines())
 		visPos := m.scroller.CursorLine() - m.scroller.Scroll()
 		if visPos < 0 || visPos >= m.visibleLines() {
 			t.Fatalf("DOWN step %d: cursor visible position %d out of bounds (cursor=%d, scroll=%d, vis=%d)",
@@ -303,7 +309,7 @@ func TestScrollHysteresisCursorVisiblePosition(t *testing.T) {
 
 	for i := 0; i < total-1; i++ {
 		m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyUp})
-		m.renderFile(f, 80, m.visibleLines())
+		m.renderContinuous(80, m.visibleLines())
 		visPos := m.scroller.CursorLine() - m.scroller.Scroll()
 		if visPos < 0 || visPos >= m.visibleLines() {
 			t.Fatalf("UP step %d: cursor visible position %d out of bounds (cursor=%d, scroll=%d, vis=%d)",

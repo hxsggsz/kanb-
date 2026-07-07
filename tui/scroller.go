@@ -40,12 +40,6 @@ func (s *Scroller) GoToBottom(total int) {
 	s.cursorLine = total - 1
 }
 
-func (s *Scroller) SetFile() {
-	s.cursorLine = 0
-	s.scroll = 0
-	s.hScroll = 0
-}
-
 func (s *Scroller) ScrollLeft() {
 	s.hScroll = max(0, s.hScroll-hScrollStep)
 }

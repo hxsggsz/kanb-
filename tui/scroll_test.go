@@ -74,18 +74,19 @@ func TestCursorStopsAtReturnZero(t *testing.T) {
 		},
 	}
 
-	totalLines := len(h1Lines) + len(h2Lines)
-	t.Logf("h1Lines=%d, h2Lines=%d, totalLines=%d", len(h1Lines), len(h2Lines), totalLines)
-
 	for height := 12; height <= 40; height++ {
 		t.Run(fmt.Sprintf("height=%d", height), func(t *testing.T) {
 			m := &model{
-				diffs:    []git.SideBySideDiff{f},
-				fileIdx:  0,
-				scroller: NewScroller(),
-				width:    80,
-				height:   height,
+				diffs:     []git.SideBySideDiff{f},
+				flatLines: buildFlatLines([]git.SideBySideDiff{f}),
+				fileStats: computeFileStats([]git.SideBySideDiff{f}),
+				scroller:  NewScroller(),
+				width:     80,
+				height:    height,
 			}
+
+			totalLines := len(m.flatLines)
+			t.Logf("h1Lines=%d, h2Lines=%d, totalLines=%d", len(h1Lines), len(h2Lines), totalLines)
 
 			vis := m.visibleLines()
 			if vis <= 0 {
@@ -94,7 +95,7 @@ func TestCursorStopsAtReturnZero(t *testing.T) {
 
 			for i := 0; i < totalLines-1; i++ {
 				m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
-				m.renderFile(f, 80, m.visibleLines())
+				m.renderContinuous(80, m.visibleLines())
 
 				visPos := m.scroller.CursorLine() - m.scroller.Scroll()
 				if visPos < 0 || visPos >= vis {
@@ -132,11 +133,12 @@ func TestScrollForDifferentHeights(t *testing.T) {
 			}
 
 			m := &model{
-				diffs:    []git.SideBySideDiff{f},
-				fileIdx:  0,
-				scroller: NewScroller(),
-				width:    80,
-				height:   height,
+				diffs:     []git.SideBySideDiff{f},
+				flatLines: buildFlatLines([]git.SideBySideDiff{f}),
+				fileStats: computeFileStats([]git.SideBySideDiff{f}),
+				scroller:  NewScroller(),
+				width:     80,
+				height:    height,
 			}
 
 			total := m.totalLines()
@@ -148,7 +150,7 @@ func TestScrollForDifferentHeights(t *testing.T) {
 
 			for i := 0; i < total-1; i++ {
 				m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
-				m.renderFile(f, 80, m.visibleLines())
+				m.renderContinuous(80, m.visibleLines())
 
 				visPos := m.scroller.CursorLine() - m.scroller.Scroll()
 				if visPos < 0 || visPos >= vis {
@@ -167,7 +169,7 @@ func TestScrollForDifferentHeights(t *testing.T) {
 
 			for i := 0; i < total-1; i++ {
 				m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyUp})
-				m.renderFile(f, 80, m.visibleLines())
+				m.renderContinuous(80, m.visibleLines())
 
 				visPos := m.scroller.CursorLine() - m.scroller.Scroll()
 				if visPos < 0 || visPos >= vis {
@@ -223,11 +225,12 @@ func TestScrollStallDetector(t *testing.T) {
 			}
 
 			m := &model{
-				diffs:    []git.SideBySideDiff{f},
-				fileIdx:  0,
-				scroller: NewScroller(),
-				width:    80,
-				height:   tc.height,
+				diffs:     []git.SideBySideDiff{f},
+				flatLines: buildFlatLines([]git.SideBySideDiff{f}),
+				fileStats: computeFileStats([]git.SideBySideDiff{f}),
+				scroller:  NewScroller(),
+				width:     80,
+				height:    tc.height,
 			}
 
 			total := m.totalLines()
@@ -249,7 +252,7 @@ func TestScrollStallDetector(t *testing.T) {
 				if i > 0 {
 					m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
 				}
-				m.renderFile(f, 80, m.visibleLines())
+				m.renderContinuous(80, m.visibleLines())
 
 				if m.scroller.Scroll() == prevScroll && m.scroller.CursorLine() > m.scroller.Scroll()+vis-scrollMargin {
 					if m.scroller.Scroll() < maxScroll {

@@ -7,8 +7,6 @@ const (
 	keyUpAlt   = "k"
 	keyDown    = "down"
 	keyDownAlt = "j"
-	keyNext    = "n"
-	keyPrev    = "p"
 	keyTop     = "g"
 	keyBottom  = "G"
 	keyHelp    = "?"

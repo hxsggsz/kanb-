@@ -17,6 +17,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = msg.err
 		} else {
 			m.diffs = msg.diffs
+			m.flatLines = buildFlatLines(m.diffs)
+			m.fileStats = computeFileStats(m.diffs)
 		}
 		return m, nil
 
@@ -58,18 +60,6 @@ func (m *model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case keyDown, keyDownAlt:
 		m.scroller.MoveDown(m.totalLines())
 
-	case keyNext:
-		if m.fileIdx < len(m.diffs)-1 {
-			m.fileIdx++
-			m.scroller.SetFile()
-		}
-
-	case keyPrev:
-		if m.fileIdx > 0 {
-			m.fileIdx--
-			m.scroller.SetFile()
-		}
-
 	case keyTop:
 		m.scroller.GoToTop()
 
@@ -96,8 +86,14 @@ func (m *model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		panelWidth := max(m.width-sideWidth-panelBorderWidth, panelMinWidth)
 		colWidth := (panelWidth - 3) / 2
 		prefixWidth := lineNumColWidth + 3
-		contentWidth := maxFileContentWidth(m.diffs[m.fileIdx])
-		m.scroller.ScrollEnd(max(0, contentWidth-(colWidth-prefixWidth)))
+		maxContent := 0
+		for _, f := range m.diffs {
+			w := maxFileContentWidth(f)
+			if w > maxContent {
+				maxContent = w
+			}
+		}
+		m.scroller.ScrollEnd(max(0, maxContent-(colWidth-prefixWidth)))
 
 	case keyHelp:
 		m.screen = screenHelp

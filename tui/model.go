@@ -14,7 +14,6 @@ const (
 
 const (
 	statusBarHeight = 1
-	borderHeight    = 2
 	lineNumColWidth = 4
 )
 
@@ -29,7 +28,8 @@ const (
 
 type model struct {
 	diffs       []git.SideBySideDiff
-	fileIdx     int
+	flatLines   []flatLine
+	fileStats   []fileStat
 	scroller    *Scroller
 	screen      screen
 	loading     bool
@@ -43,15 +43,7 @@ type model struct {
 }
 
 func (m *model) totalLines() int {
-	if len(m.diffs) == 0 {
-		return 0
-	}
-	f := m.diffs[m.fileIdx]
-	total := 0
-	for _, h := range f.Hunks {
-		total += len(h.Lines)
-	}
-	return total
+	return len(m.flatLines)
 }
 
 func New(repoPath string, gitArgs []string) tea.Model {
@@ -69,5 +61,5 @@ func (m *model) Init() tea.Cmd {
 }
 
 func (m *model) visibleLines() int {
-	return m.height - (statusBarHeight + borderHeight)
+	return m.height - statusBarHeight
 }
