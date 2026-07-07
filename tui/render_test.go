@@ -17,7 +17,7 @@ func TestRenderAlignedLinePreservesANSI(t *testing.T) {
 		Kind:       git.KindContext,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go")
+	result := 		renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0)
 	if !strings.Contains(result, "\x1b[") {
 		t.Fatal("expected ANSI escape codes in rendered output")
 	}
@@ -31,7 +31,7 @@ func TestRenderAlignedLineAddsBackground(t *testing.T) {
 		Kind:       git.KindAdded,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go")
+	result := 		renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0)
 
 	rightBG := "\x1b[48;5;22m"
 	if !strings.Contains(result, rightBG) {
@@ -61,7 +61,7 @@ func TestRenderAlignedLineDeletedBackground(t *testing.T) {
 		Kind:       git.KindDeleted,
 	}
 	fmtr := defaultFormatters[ln.Kind]
-	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go")
+	result := 		renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0)
 
 	leftBG := "\x1b[48;5;52m"
 	if !strings.Contains(result, leftBG) {

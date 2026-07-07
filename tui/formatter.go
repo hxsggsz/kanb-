@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 	"kanba/git"
 )
 
@@ -64,9 +65,10 @@ func NewDefaultFormatters() map[git.LineKind]LineFormatter {
 		git.KindDeleted:  deletedFormatter{},
 		git.KindModified: modifiedFormatter{},
 	}
+
 }
 
-func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor bool, sh *SyntaxHighlighter, filePath string) string {
+func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor bool, sh *SyntaxHighlighter, filePath string, hScroll int) string {
 	oldNum := ""
 	if ln.OldLineNum > 0 {
 		oldNum = strconv.Itoa(ln.OldLineNum)
@@ -83,11 +85,20 @@ func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor
 		rightContent = sh.Highlight(rightContent, filePath)
 	}
 
+	// clip content by hScroll, keeping line numbers and +/- prefix fixed
+	// always clip to prevent overflow into the other panel
+	contentAreaWidth := colWidth - (lineNumColWidth + 3)
+	if contentAreaWidth < 0 {
+		contentAreaWidth = 0
+	}
+	leftContent = ansi.Cut(leftContent, hScroll, hScroll+contentAreaWidth)
+	rightContent = ansi.Cut(rightContent, hScroll, hScroll+contentAreaWidth)
+
 	leftLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, oldNum, f.LeftPrefix(ln), leftContent)
 	rightLine := fmt.Sprintf("%*s %s %s", lineNumColWidth, newNum, f.RightPrefix(ln), rightContent)
 
-	leftRendered := f.LeftStyle(ln, cursor).Width(colWidth).Render(leftLine)
-	rightRendered := f.RightStyle(ln, cursor).Width(colWidth).Render(rightLine)
+	leftRendered := f.LeftStyle(ln, cursor).Render(leftLine)
+	rightRendered := f.RightStyle(ln, cursor).Render(rightLine)
 
 	if sh != nil {
 		leftRendered = renderLineWithHighlight(leftRendered, colWidth, ln.Kind, true, cursor)
@@ -99,6 +110,7 @@ func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor
 
 func renderLineWithHighlight(s string, colWidth int, kind git.LineKind, isLeft bool, cursor bool) string {
 	if cursor {
+		s = padToWidth(s, colWidth, "")
 		return injectCursor(s)
 	}
 	bgCode := backgroundFor(kind, isLeft)

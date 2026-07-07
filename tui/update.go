@@ -76,9 +76,34 @@ func (m *model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case keyBottom:
 		m.scroller.GoToBottom(m.totalLines())
 
+	case keyLeft, keyLeftAlt:
+		m.scroller.ScrollLeft()
+
+	case keyRight, keyRightAlt:
+		m.scroller.ScrollRight()
+
+	case keyLeftWord:
+		m.scroller.ScrollLeftFast()
+
+	case keyRightWord:
+		m.scroller.ScrollRightFast()
+
+	case keyHome:
+		m.scroller.ScrollHome()
+
+	case keyEnd:
+		sideWidth := CalculateSideWidth(m.width)
+		panelWidth := max(m.width-sideWidth-panelBorderWidth, panelMinWidth)
+		colWidth := (panelWidth - 3) / 2
+		prefixWidth := lineNumColWidth + 3
+		contentWidth := maxFileContentWidth(m.diffs[m.fileIdx])
+		m.scroller.ScrollEnd(max(0, contentWidth-(colWidth-prefixWidth)))
+
 	case keyHelp:
 		m.screen = screenHelp
 	}
 
 	return m, nil
 }
+
+

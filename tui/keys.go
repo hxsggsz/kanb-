@@ -12,5 +12,14 @@ const (
 	keyTop     = "g"
 	keyBottom  = "G"
 	keyHelp    = "?"
-	keyBack = "esc"
+	keyBack    = "esc"
+
+	keyLeft      = "left"
+	keyLeftAlt   = "h"
+	keyRight     = "right"
+	keyRightAlt  = "l"
+	keyLeftWord  = "ctrl+left"
+	keyRightWord = "ctrl+right"
+	keyHome      = "_"
+	keyEnd       = "$"
 )

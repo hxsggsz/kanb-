@@ -44,6 +44,7 @@ func injectBackground(s, bgCode string) string {
 }
 
 func injectCursor(s string) string {
+	s = strings.ReplaceAll(s, "\x1b[0m", "\x1b[0m\x1b[7m")
 	return "\x1b[7m" + s + "\x1b[0m"
 }
 

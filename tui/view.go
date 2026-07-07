@@ -82,11 +82,15 @@ func (m *model) renderFile(f git.SideBySideDiff, width int, vis int) string {
 	m.scroller.UpdateScroll(total, vis)
 
 	colWidth := (width - 3) / 2
+
+	// clamp horizontal scroll to file's longest content width
+	contentWidth := maxFileContentWidth(f)
+	contentAreaWidth := colWidth - (lineNumColWidth + 3)
+	m.scroller.ClampHScroll(max(0, contentWidth-contentAreaWidth))
+
+	hScroll := m.scroller.HScroll()
 	start := m.scroller.Scroll()
-	end := start + vis
-	if end > total {
-		end = total
-	}
+	end := min(start + vis, total)
 
 	var lines []string
 	lineIdx := 0
@@ -105,7 +109,7 @@ func (m *model) renderFile(f git.SideBySideDiff, width int, vis int) string {
 			if lineIdx >= start && lineIdx < end {
 				cursor := lineIdx == m.scroller.CursorLine()
 				fmtr := defaultFormatters[ln.Kind]
-				lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath))
+				lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll))
 			}
 			lineIdx++
 		}
@@ -129,12 +133,30 @@ func statusColorFor(status string) lipgloss.Style {
 	}
 }
 
+func maxFileContentWidth(f git.SideBySideDiff) int {
+	maxWidth := 0
+	for _, h := range f.Hunks {
+		for _, ln := range h.Lines {
+			w := max(len(ln.OldContent), len(ln.NewContent))
+			if w > maxWidth {
+				maxWidth = w
+			}
+		}
+	}
+	return maxWidth
+}
+
 func (m *model) helpView() string {
 	var content strings.Builder
 	content.WriteString(" Keybindings\n\n")
 	bindings := []struct{ key, desc string }{
 		{"↑/k", "Cursor up"},
 		{"↓/j", "Cursor down"},
+		{"h/←", "Scroll left 8 cols"},
+		{"l/→", "Scroll right 8 cols"},
+		{"C-←/C-→", "Scroll 32 cols"},
+		{"_", "Go to line start"},
+		{"$", "Go to line end"},
 		{"n", "Next file"},
 		{"p", "Previous file"},
 		{"g", "Go to top"},
