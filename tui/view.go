@@ -82,36 +82,40 @@ func (m *model) renderFile(f git.SideBySideDiff, width int, vis int) string {
 	m.scroller.UpdateScroll(total, vis)
 
 	colWidth := (width - 3) / 2
+	start := m.scroller.Scroll()
+	end := start + vis
+	if end > total {
+		end = total
+	}
 
 	var lines []string
 	lineIdx := 0
 	for _, h := range f.Hunks {
-		cursor := lineIdx == m.scroller.CursorLine()
-		line := hunkHeaderStyle.Render(h.Header)
-		if cursor {
-			line = lineCursorStyle.Width(width).Render(line)
+		if lineIdx >= start && lineIdx < end {
+			cursor := lineIdx == m.scroller.CursorLine()
+			line := hunkHeaderStyle.Render(h.Header)
+			if cursor {
+				line = lineCursorStyle.Width(width).Render(line)
+			}
+			lines = append(lines, line)
 		}
-		lines = append(lines, line)
 		lineIdx++
 
 		for _, ln := range h.Lines {
-			cursor := lineIdx == m.scroller.CursorLine()
-			fmtr := defaultFormatters[ln.Kind]
-			lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath))
+			if lineIdx >= start && lineIdx < end {
+				cursor := lineIdx == m.scroller.CursorLine()
+				fmtr := defaultFormatters[ln.Kind]
+				lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath))
+			}
 			lineIdx++
+		}
+
+		if lineIdx >= end {
+			break
 		}
 	}
 
-	start := m.scroller.Scroll()
-	end := start + vis
-	if start >= len(lines) {
-		start = 0
-	}
-	if end > len(lines) {
-		end = len(lines)
-	}
-
-	return strings.Join(lines[start:end], "\n")
+	return strings.Join(lines, "\n")
 }
 
 func statusColorFor(status string) lipgloss.Style {
