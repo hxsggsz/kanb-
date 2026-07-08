@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
-	"kanba/overlay"
+	"kanba/tui/overlay"
 )
 
 type ModalItem struct {
