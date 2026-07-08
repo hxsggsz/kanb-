@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -64,42 +63,72 @@ func (m *Modal) SyncCursor(key string) {
 	}
 }
 
-func (m *Modal) Render(bgColor, accentColor string) string {
+func (m *Modal) Render(bgColor, accentColor, fgColor string) string {
 	if len(m.Items) == 0 {
 		return ""
 	}
 
-	cursorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(accentColor))
-	markStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(accentColor))
+	bg := lipgloss.Color(bgColor)
+	accent := lipgloss.Color(accentColor)
+
+	indicatorStyle := lipgloss.NewStyle().Foreground(accent).Background(bg)
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(fgColor)).Background(bg)
 
 	var buf strings.Builder
-	buf.WriteString(cursorStyle.Render(fmt.Sprintf(" %s\n\n", m.Title)))
+
+	title := " " + m.Title
+	buf.WriteString(indicatorStyle.Render(title))
+	buf.WriteString("\n\n")
+
 	for _, item := range m.Items {
-		cursor := " "
-		if item.Key == m.Items[m.Cursor].Key {
-			cursor = cursorStyle.Render("◄")
+		hasCursor := item.Key == m.Items[m.Cursor].Key
+		hasMark := item.Key == m.Selected
+
+		var indicator string
+		if hasCursor && hasMark {
+			indicator = indicatorStyle.Render(" ◄ ● ")
+		} else if hasCursor {
+			indicator = indicatorStyle.Render(" ◄   ")
+		} else if hasMark {
+			indicator = indicatorStyle.Render("   ● ")
+		} else {
+			indicator = "     "
 		}
-		mark := " "
-		if item.Key == m.Selected {
-			mark = markStyle.Render("●")
-		}
-		buf.WriteString(fmt.Sprintf(" %s %s %s\n", cursor, mark, item.Label))
+
+		label := labelStyle.Render(item.Label)
+		buf.WriteString(indicator + label + "\n")
 	}
-	buf.WriteString(cursorStyle.Render("\n ↑↓ navigate  ↵ select  t/esc/q close"))
+
+	buf.WriteString("\n")
+	buf.WriteString(indicatorStyle.Render(" ↑↓ navigate  ↵ select  t/esc/q close"))
+
+	content := buf.String()
+
+	maxW := 0
+	for _, line := range strings.Split(content, "\n") {
+		w := lipgloss.Width(line)
+		if w > maxW {
+			maxW = w
+		}
+	}
 
 	style := lipgloss.NewStyle().
-		Background(lipgloss.Color(bgColor)).
-		Padding(1, 2)
+		Background(bg).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(accent).
+		BorderBackground(bg).
+		Padding(1, 2).
+		Width(maxW + 6)
 
-	return style.Render(buf.String())
+	return style.Render(content)
 }
 
-func (m *Modal) Overlay(base string, bgColor, borderColor string, contentLeft, contentWidth int) string {
+func (m *Modal) Overlay(base string, bgColor, borderColor, fgColor string, contentLeft, contentWidth int) string {
 	if !m.Active {
 		return base
 	}
 
-	fg := m.Render(bgColor, borderColor)
+	fg := m.Render(bgColor, borderColor, fgColor)
 	fgWidth := lipgloss.Width(fg)
 	xOff := contentLeft + max(0, (contentWidth-fgWidth)/2)
 

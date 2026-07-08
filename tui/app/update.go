@@ -53,19 +53,21 @@ func (m *Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.handleThemeModalKeys(msg)
 	}
 
+	if m.helpActive {
+		switch msg.String() {
+		case setting.KeyHelp, setting.KeyBack:
+			m.helpActive = false
+		}
+		return m, nil
+	}
+
 	switch msg.String() {
 	case setting.KeyQuit, setting.KeyQuitAlt:
 		return m, tea.Quit
 	}
 
-	switch m.screen {
-	case screenDiff:
+	if m.screen == screenDiff {
 		return m.handleDiffKeys(msg)
-	case screenHelp:
-		if msg.String() == setting.KeyHelp || msg.String() == setting.KeyBack {
-			m.screen = screenDiff
-		}
-		return m, nil
 	}
 
 	return m, nil
@@ -127,7 +129,7 @@ func (m *Model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.scroller.ScrollEnd(max(0, maxContent-(colWidth-prefixWidth)))
 
 	case setting.KeyHelp:
-		m.screen = screenHelp
+		m.helpActive = true
 
 	case setting.KeyTheme:
 		m.themeModal.Active = true
@@ -185,21 +187,37 @@ func (m *Model) handleMouseClick(msg tea.MouseClickMsg) *Model {
 		sideWidth := widget.CalculateSideWidth(m.width)
 		panelWidth := max(m.width-sideWidth-panelBorderWidth, panelMinWidth)
 
-		fg := m.themeModal.Render(theme.PanelBg, theme.SidebarSelected)
+		fg := m.themeModal.Render(theme.PanelBg, theme.SidebarSelected, theme.ContextFg)
 		fgWidth, fgHeight := lipgloss.Size(fg)
 		modalX := sideWidth + max(0, (panelWidth-fgWidth)/2)
 		modalY := max(0, (m.height-fgHeight)/2)
 
 		if x >= modalX && x < modalX+fgWidth && y >= modalY && y < modalY+fgHeight {
 			relY := y - modalY
-			if relY >= 3 && relY < 3+len(m.themeModal.Items) {
-				idx := relY - 3
+			if relY >= 4 && relY < 4+len(m.themeModal.Items) {
+				idx := relY - 4
 				m.themeModal.Cursor = idx
 				m.themeModal.Select()
 				m.themeModal.SyncCursor(m.themeModal.Selected)
 			}
 		} else {
 			m.themeModal.Close()
+		}
+		return m
+	}
+
+	if m.helpActive {
+		theme := m.CurrentTheme()
+		sideWidth := widget.CalculateSideWidth(m.width)
+		panelWidth := max(m.width-sideWidth-panelBorderWidth, panelMinWidth)
+
+		fg := m.helpContent(theme)
+		fgWidth, fgHeight := lipgloss.Size(fg)
+		modalX := sideWidth + max(0, (panelWidth-fgWidth)/2)
+		modalY := max(0, m.height/2-fgHeight/2)
+
+		if !(x >= modalX && x < modalX+fgWidth && y >= modalY && y < modalY+fgHeight) {
+			m.helpActive = false
 		}
 		return m
 	}

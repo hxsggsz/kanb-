@@ -6,7 +6,8 @@ import (
 	"strings"
 
 	"kanba/tui/diff"
-	"kanba/tui/setting"
+	"kanba/tui/models"
+	"kanba/tui/overlay"
 	"kanba/tui/widget"
 
 	tea "charm.land/bubbletea/v2"
@@ -33,11 +34,8 @@ func (m *Model) View() tea.View {
 		return v
 	}
 
-	switch m.screen {
-	case screenDiff:
+	if m.screen == screenDiff {
 		v.SetContent(m.diffView())
-	case screenHelp:
-		v.SetContent(m.helpView())
 	}
 
 	return v
@@ -96,7 +94,11 @@ func (m *Model) diffView() string {
 
 	theme = m.CurrentTheme()
 	result = lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg)).Render(result)
-	result = m.themeModal.Overlay(result, theme.PanelBg, theme.SidebarSelected, sideWidth, panelWidth)
+	result = m.themeModal.Overlay(result, theme.PanelBg, theme.SidebarSelected, theme.ContextFg, sideWidth, panelWidth)
+
+	if m.helpActive {
+		result = m.helpOverlay(result, theme, sideWidth, panelWidth)
+	}
 
 	return result
 }
@@ -206,10 +208,22 @@ func maxFileContentWidth(f git.SideBySideDiff) int {
 	return maxWidth
 }
 
-func (m *Model) helpView() string {
-	theme := m.CurrentTheme()
-	var content strings.Builder
-	content.WriteString(" Keybindings\n\n")
+func (m *Model) helpOverlay(base string, theme models.Theme, sideWidth, panelWidth int) string {
+	fg := m.helpContent(theme)
+	fgWidth := lipgloss.Width(fg)
+	xOff := sideWidth + max(0, (panelWidth-fgWidth)/2)
+	return overlay.Composite(fg, base, overlay.Left, overlay.Center, xOff, 0)
+}
+
+func (m *Model) helpContent(theme models.Theme) string {
+	bg := lipgloss.Color(theme.PanelBg)
+	accent := lipgloss.Color(theme.SidebarSelected)
+
+	accentStyle := lipgloss.NewStyle().Foreground(accent).Background(bg)
+
+	var buf strings.Builder
+	buf.WriteString(accentStyle.Render(" Keybindings"))
+	buf.WriteString("\n\n")
 	bindings := []struct{ key, desc string }{
 		{"\u2191/k", "Cursor up"},
 		{"\u2193/j", "Cursor down"},
@@ -225,10 +239,28 @@ func (m *Model) helpView() string {
 		{"q/ctrl+c", "Quit"},
 	}
 	for _, b := range bindings {
-		fmt.Fprintf(&content, "  %-12s %s\n", b.key, b.desc)
+		fmt.Fprintf(&buf, "  %-12s %s\n", b.key, b.desc)
 	}
-	return setting.HelpStyle.
-		Background(lipgloss.Color(theme.PanelBg)).
+	buf.WriteString("\n")
+	buf.WriteString(accentStyle.Render(" ?/esc close"))
+
+	content := buf.String()
+
+	maxW := 0
+	for _, line := range strings.Split(content, "\n") {
+		w := lipgloss.Width(line)
+		if w > maxW {
+			maxW = w
+		}
+	}
+
+	return lipgloss.NewStyle().
+		Background(bg).
 		Foreground(lipgloss.Color(theme.ContextFg)).
-		Render(content.String())
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(accent).
+		BorderBackground(bg).
+		Padding(1, 2).
+		Width(maxW + 6).
+		Render(content)
 }

@@ -38,6 +38,7 @@ type Model struct {
 	gitArgs      []string
 	highlighter  *diff.SyntaxHighlighter
 	themeModal   *models.Modal
+	helpActive   bool
 }
 
 func (m *Model) TotalLines() int {
