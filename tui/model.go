@@ -23,7 +23,7 @@ const (
 	sidebarMaxWidth     = 35
 	sidebarDefaultWidth = 25
 	sidebarDenominator  = 4
-	panelBorderWidth    = 2
+	panelBorderWidth    = 0
 	panelMinWidth       = 10
 )
 

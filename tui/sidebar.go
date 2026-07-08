@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -62,68 +61,91 @@ func (s *Sidebar) Render() string {
 		visible = visible[:s.maxLines]
 	}
 
-	availableWidth := s.width - 3
-
-	sidebarStyle := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderRight(true).
-		BorderLeft(false).
-		BorderTop(false).
-		BorderBottom(false).
-		BorderForeground(lipgloss.Color(s.theme.BorderColor)).
-		Background(lipgloss.Color(s.theme.PanelBg)).
-		Padding(0, 1)
-
-	sidebarFile := lipgloss.NewStyle().PaddingLeft(1)
-	sidebarFileSelected := lipgloss.NewStyle().
-		PaddingLeft(0).
-		Foreground(lipgloss.Color(s.theme.SidebarSelected)).
-		Bold(true)
-	sidebarDirStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color(s.theme.SidebarDir)).
-		PaddingLeft(1)
-
 	var sb strings.Builder
 	lineCount := 0
 	for _, e := range visible {
+		var line string
 		if e.isDir {
-			sb.WriteString(sidebarDirStyle.Render(truncate(e.dir, availableWidth)) + "\n")
+			line = s.renderDir(e.dir)
 		} else {
-			statusColor := statusColorFor(e.file.Status, s.theme)
-			_, filename := filepath.Split(e.file.NewPath)
-
-			addStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(s.theme.SidebarAdded))
-			delStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(s.theme.SidebarDeleted))
-			st := s.stats[e.fileIdx]
-			var statsParts []string
-			if st.added > 0 {
-				statsParts = append(statsParts, addStyle.Render("+"+strconv.Itoa(st.added)))
-			}
-			if st.deleted > 0 {
-				statsParts = append(statsParts, delStyle.Render("-"+strconv.Itoa(st.deleted)))
-			}
-			statsStr := ""
-			if len(statsParts) > 0 {
-				statsStr = " (" + strings.Join(statsParts, ", ") + ")"
-			}
-
-			if e.fileIdx == s.fileIdx {
-				label := fmt.Sprintf("%s %s%s", statusColor.Render(e.file.Status), truncate(filename, availableWidth-4-lipgloss.Width(statsStr)), statsStr)
-				sb.WriteString(sidebarFileSelected.Render("▸ "+label) + "\n")
-			} else {
-				label := fmt.Sprintf("%s %s%s", statusColor.Render(e.file.Status), truncate(filename, availableWidth-5-lipgloss.Width(statsStr)), statsStr)
-				sb.WriteString(sidebarFile.Render("  "+label) + "\n")
-			}
+			line = s.renderFile(e)
 		}
+		sb.WriteString(line)
+		sb.WriteByte('\n')
 		lineCount++
 	}
 
 	content := strings.TrimRight(sb.String(), "\n")
 	s.contentHeight = lineCount
-	return sidebarStyle.Width(s.width).Render(content)
+
+	return lipgloss.NewStyle().
+		Background(lipgloss.Color(s.theme.SidebarBg)).
+		Padding(1, 1).
+		MarginBackground(lipgloss.Color(s.theme.PanelBg)).
+		Width(s.width).
+		Render(content)
 }
 
 func (s *Sidebar) ContentHeight() int { return s.contentHeight }
+
+func (s *Sidebar) renderDir(dir string) string {
+	avail := s.width - 3
+	return lipgloss.NewStyle().
+		Foreground(lipgloss.Color(s.theme.SidebarDir)).
+		Background(lipgloss.Color(s.theme.SidebarBg)).
+		Render(" " + truncate(dir, avail-1))
+}
+
+func statusFg(status string, theme models.Theme) string {
+	switch status {
+	case "A":
+		return theme.SidebarAdded
+	case "D":
+		return theme.SidebarDeleted
+	default:
+		return theme.SidebarModified
+	}
+}
+
+func (s *Sidebar) renderFile(e visualEntry) string {
+	avail := s.width - 3
+
+	_, filename := filepath.Split(e.file.NewPath)
+	st := s.stats[e.fileIdx]
+
+	bg := lipgloss.NewStyle().Background(lipgloss.Color(s.theme.SidebarBg))
+
+	statusStyle := bg.Foreground(lipgloss.Color(statusFg(e.file.Status, s.theme)))
+	addStyle := bg.Foreground(lipgloss.Color(s.theme.SidebarAdded))
+	delStyle := bg.Foreground(lipgloss.Color(s.theme.SidebarDeleted))
+
+	var statsSegs []string
+	if st.added > 0 {
+		statsSegs = append(statsSegs, addStyle.Render("+"+strconv.Itoa(st.added)))
+	}
+	if st.deleted > 0 {
+		statsSegs = append(statsSegs, delStyle.Render("-"+strconv.Itoa(st.deleted)))
+	}
+	var statsStr string
+	if len(statsSegs) > 0 {
+		statsStr = bg.Render(" (") + strings.Join(statsSegs, bg.Render(", ")) + bg.Render(")")
+	}
+	statsW := lipgloss.Width(statsStr)
+
+	if e.fileIdx == s.fileIdx {
+		nameW := max(avail - 4 - statsW, 0)
+		name := truncate(filename, nameW)
+
+		lineStyle := bg.Foreground(lipgloss.Color(s.theme.SidebarSelected)).Bold(true)
+		return lineStyle.Render("▸ ") + statusStyle.Render(e.file.Status) + lineStyle.Render(" " + name) + statsStr
+	}
+
+	nameW := max(avail - 4 - statsW, 0)
+	name := truncate(filename, nameW)
+
+	lineStyle := bg.Foreground(lipgloss.Color(s.theme.ContextFg))
+	return lineStyle.Render("  ") + statusStyle.Render(e.file.Status) + lineStyle.Render(" " + name) + statsStr
+}
 
 func CalculateSideWidth(totalWidth int) int {
 	if totalWidth <= 0 {
@@ -164,5 +186,5 @@ func truncate(s string, maxLen int) string {
 	if maxLen <= 3 {
 		return string([]rune(s)[:maxLen])
 	}
-	return string([]rune(s)[:maxLen-3]) + "..."
+	return string([]rune(s)[:maxLen-3]) + "."
 }

@@ -26,6 +26,7 @@ type Theme struct {
 
 	CursorBg string
 
+	SidebarBg       string
 	SidebarSelected string
 	SidebarAdded    string
 	SidebarDeleted  string
@@ -35,9 +36,8 @@ type Theme struct {
 	StatusBarBg string
 	StatusBarFg string
 
-	ErrorFg     string
-	LoadingFg   string
-	BorderColor string
+	ErrorFg      string
+	LoadingFg    string
 }
 
 var Themes = map[string]Theme{
@@ -53,8 +53,9 @@ var Themes = map[string]Theme{
 		LineNumberBg: "#26233a",
 		AddedSign:    "#9ccfd8",
 		RemovedSign:  "#eb6f92",
-		ContextFg:    "#6e6a86",
+		ContextFg:    "#e0def4",
 		CursorBg:     "#403d52",
+		SidebarBg:       "#191724",
 		SidebarSelected: "#c4a7e7",
 		SidebarAdded:    "#9ccfd8",
 		SidebarDeleted:  "#eb6f92",
@@ -62,9 +63,8 @@ var Themes = map[string]Theme{
 		SidebarDir:      "#6e6a86",
 		StatusBarBg: "#26233a",
 		StatusBarFg: "#e0def4",
-		ErrorFg:     "#eb6f92",
-		LoadingFg:   "#c4a7e7",
-		BorderColor: "#e0def4",
+		ErrorFg:      "#eb6f92",
+		LoadingFg:    "#c4a7e7",
 	},
 	"rose-pine-moon": {
 		Name:      "Rosé Pine Moon",
@@ -78,8 +78,9 @@ var Themes = map[string]Theme{
 		LineNumberBg: "#393552",
 		AddedSign:    "#9ccfd8",
 		RemovedSign:  "#eb6f92",
-		ContextFg:    "#6e6a86",
+		ContextFg:    "#e0def4",
 		CursorBg:     "#44415a",
+		SidebarBg:       "#232136",
 		SidebarSelected: "#c4a7e7",
 		SidebarAdded:    "#9ccfd8",
 		SidebarDeleted:  "#eb6f92",
@@ -87,9 +88,8 @@ var Themes = map[string]Theme{
 		SidebarDir:      "#6e6a86",
 		StatusBarBg: "#393552",
 		StatusBarFg: "#e0def4",
-		ErrorFg:     "#eb6f92",
-		LoadingFg:   "#c4a7e7",
-		BorderColor: "#e0def4",
+		ErrorFg:      "#eb6f92",
+		LoadingFg:    "#c4a7e7",
 	},
 	"rose-pine-dawn": {
 		Name:      "Rosé Pine Dawn",
@@ -103,18 +103,18 @@ var Themes = map[string]Theme{
 		LineNumberBg: "#f2e9de",
 		AddedSign:    "#56949f",
 		RemovedSign:  "#b4637a",
-		ContextFg:    "#9893a5",
+		ContextFg:    "#575279",
 		CursorBg:     "#dfdad9",
+		SidebarBg:       "#faf4ed",
 		SidebarSelected: "#907aa9",
 		SidebarAdded:    "#56949f",
 		SidebarDeleted:  "#b4637a",
 		SidebarModified: "#ea9d34",
-		SidebarDir:      "#9893a5",
+		SidebarDir:      "#6e6a86",
 		StatusBarBg: "#f2e9de",
 		StatusBarFg: "#575279",
-		ErrorFg:     "#b4637a",
-		LoadingFg:   "#907aa9",
-		BorderColor: "#575279",
+		ErrorFg:      "#b4637a",
+		LoadingFg:    "#907aa9",
 	},
 }
 

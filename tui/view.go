@@ -5,8 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	models "kanba/tui/models"
-
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"kanba/git"
@@ -43,6 +41,7 @@ func (m *model) View() tea.View {
 func (m *model) loadingView() string {
 	theme := m.currentTheme()
 	return lipgloss.NewStyle().
+		Background(lipgloss.Color(theme.PanelBg)).
 		Foreground(lipgloss.Color(theme.LoadingFg)).
 		Padding(2, 4).
 		Render(" Loading diffs...")
@@ -51,6 +50,7 @@ func (m *model) loadingView() string {
 func (m *model) errorView() string {
 	theme := m.currentTheme()
 	return lipgloss.NewStyle().
+		Background(lipgloss.Color(theme.PanelBg)).
 		Foreground(lipgloss.Color(theme.ErrorFg)).
 		Bold(true).
 		Padding(2, 4).
@@ -60,6 +60,7 @@ func (m *model) errorView() string {
 func (m *model) emptyView() string {
 	theme := m.currentTheme()
 	return lipgloss.NewStyle().
+		Background(lipgloss.Color(theme.PanelBg)).
 		Foreground(lipgloss.Color(theme.LoadingFg)).
 		Padding(2, 4).
 		Render(" No changes to show.")
@@ -89,6 +90,7 @@ func (m *model) diffView() string {
 	result := fmt.Sprintf("%s\n%s", statusBar.Render(), body)
 
 	theme = m.currentTheme()
+	result = lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg)).Render(result)
 	result = m.themeModal.Overlay(result, theme.PanelBg, theme.SidebarSelected, sideWidth, panelWidth)
 
 	return result
@@ -144,47 +146,43 @@ func (m *model) renderFileHeader(fl flatLine, colWidth int, cursor bool) string 
 	f := m.diffs[fl.fileIdx]
 	stats := m.fileStats[fl.fileIdx]
 
-	addStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(theme.SidebarAdded))
-	delStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(theme.SidebarDeleted))
-
-	var parts []string
-	if stats.added > 0 {
-		parts = append(parts, addStyle.Render("+"+strconv.Itoa(stats.added)))
-	}
-	if stats.deleted > 0 {
-		parts = append(parts, delStyle.Render("-"+strconv.Itoa(stats.deleted)))
-	}
-
-	statsStr := strings.Join(parts, ", ")
-	if statsStr != "" {
-		statsStr = " (" + statsStr + ")"
-	}
-	text := fmt.Sprintf(" %s%s", f.NewPath, statsStr)
-
-	style := lipgloss.NewStyle()
-	if fl.fileIdx > 0 {
-		style = style.
-			MarginTop(1).
-			BorderTop(true).
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.Color(theme.BorderColor))
-	}
-	style = style.Padding(1, 1).Width(colWidth)
+	bgColor := theme.PanelBg
 	if cursor {
-		style = style.Background(lipgloss.Color(theme.CursorBg))
+		bgColor = theme.CursorBgFor(bgColor)
+	}
+
+	bg := lipgloss.NewStyle().Background(lipgloss.Color(bgColor))
+	normalStyle := bg.Foreground(lipgloss.Color(theme.ContextFg))
+	addStyle := bg.Foreground(lipgloss.Color(theme.SidebarAdded))
+	delStyle := bg.Foreground(lipgloss.Color(theme.SidebarDeleted))
+
+	var segs []string
+	segs = append(segs, normalStyle.Render(" "+f.NewPath))
+
+	if stats.added > 0 || stats.deleted > 0 {
+		segs = append(segs, normalStyle.Render(" ("))
+		var statSegs []string
+		if stats.added > 0 {
+			statSegs = append(statSegs, addStyle.Render("+"+strconv.Itoa(stats.added)))
+		}
+		if stats.deleted > 0 {
+			statSegs = append(statSegs, delStyle.Render("-"+strconv.Itoa(stats.deleted)))
+		}
+		segs = append(segs, strings.Join(statSegs, normalStyle.Render(", ")))
+		segs = append(segs, normalStyle.Render(")"))
+	}
+
+	text := strings.Join(segs, "")
+
+	style := lipgloss.NewStyle().
+		Background(lipgloss.Color(bgColor)).
+		MarginBackground(lipgloss.Color(bgColor)).
+		Padding(1, 1).
+		Width(colWidth)
+	if fl.fileIdx > 0 {
+		style = style.MarginTop(1)
 	}
 	return style.Render(text)
-}
-
-func statusColorFor(status string, theme models.Theme) lipgloss.Style {
-	switch status {
-	case "A":
-		return lipgloss.NewStyle().Foreground(lipgloss.Color(theme.SidebarAdded))
-	case "D":
-		return lipgloss.NewStyle().Foreground(lipgloss.Color(theme.SidebarDeleted))
-	default:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color(theme.SidebarModified))
-	}
 }
 
 func maxFileContentWidth(f git.SideBySideDiff) int {
@@ -201,6 +199,7 @@ func maxFileContentWidth(f git.SideBySideDiff) int {
 }
 
 func (m *model) helpView() string {
+	theme := m.currentTheme()
 	var content strings.Builder
 	content.WriteString(" Keybindings\n\n")
 	bindings := []struct{ key, desc string }{
@@ -220,5 +219,8 @@ func (m *model) helpView() string {
 	for _, b := range bindings {
 		fmt.Fprintf(&content, "  %-12s %s\n", b.key, b.desc)
 	}
-	return helpStyle.Render(content.String())
+	return helpStyle.
+		Background(lipgloss.Color(theme.PanelBg)).
+		Foreground(lipgloss.Color(theme.ContextFg)).
+		Render(content.String())
 }

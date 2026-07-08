@@ -88,8 +88,6 @@ func (m *Modal) Render(bgColor, accentColor string) string {
 	buf.WriteString(cursorStyle.Render("\n ↑↓ navigate  ↵ select  t/esc/q close"))
 
 	style := lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color(accentColor)).
 		Background(lipgloss.Color(bgColor)).
 		Padding(1, 2)
 
