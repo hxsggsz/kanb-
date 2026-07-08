@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	statusBarHeight = 4
+	statusBarHeight  = 4
 	panelBorderWidth = 0
-	panelMinWidth   = 10
+	panelMinWidth    = 10
+	mouseScrollSpeed = 3
 )
 
 type screen int

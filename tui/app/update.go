@@ -5,6 +5,7 @@ import (
 	"kanba/tui/widget"
 	"kanba/tui/setting"
 
+	"charm.land/lipgloss/v2"
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -28,6 +29,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyPressMsg:
 		return m.handleKeyPress(msg)
+
+	case tea.MouseClickMsg:
+		return m.handleMouseClick(msg), nil
+	case tea.MouseWheelMsg:
+		return m.handleMouseWheel(msg), nil
 	}
 
 	return m, nil
@@ -131,6 +137,29 @@ func (m *Model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m *Model) handleMouseWheel(msg tea.MouseWheelMsg) *Model {
+	if len(m.flatLines) == 0 {
+		return m
+	}
+	if m.themeModal.Active {
+		switch msg.Button {
+		case tea.MouseWheelUp:
+			m.themeModal.MoveUp()
+		case tea.MouseWheelDown:
+			m.themeModal.MoveDown()
+		}
+		return m
+	}
+
+	switch msg.Button {
+	case tea.MouseWheelUp:
+		m.scroller.ScrollViewBy(-mouseScrollSpeed, m.TotalLines())
+	case tea.MouseWheelDown:
+		m.scroller.ScrollViewBy(mouseScrollSpeed, m.TotalLines())
+	}
+	return m
+}
+
 func (m *Model) handleThemeModalKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case setting.KeyUp, setting.KeyUpAlt:
@@ -143,4 +172,89 @@ func (m *Model) handleThemeModalKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.themeModal.Close()
 	}
 	return m, nil
+}
+
+func (m *Model) handleMouseClick(msg tea.MouseClickMsg) *Model {
+	if len(m.flatLines) == 0 {
+		return m
+	}
+	x, y := msg.X, msg.Y
+
+	if m.themeModal.Active {
+		theme := m.CurrentTheme()
+		sideWidth := widget.CalculateSideWidth(m.width)
+		panelWidth := max(m.width-sideWidth-panelBorderWidth, panelMinWidth)
+
+		fg := m.themeModal.Render(theme.PanelBg, theme.SidebarSelected)
+		fgWidth, fgHeight := lipgloss.Size(fg)
+		modalX := sideWidth + max(0, (panelWidth-fgWidth)/2)
+		modalY := max(0, (m.height-fgHeight)/2)
+
+		if x >= modalX && x < modalX+fgWidth && y >= modalY && y < modalY+fgHeight {
+			relY := y - modalY
+			if relY >= 3 && relY < 3+len(m.themeModal.Items) {
+				idx := relY - 3
+				m.themeModal.Cursor = idx
+				m.themeModal.Select()
+				m.themeModal.SyncCursor(m.themeModal.Selected)
+			}
+		} else {
+			m.themeModal.Close()
+		}
+		return m
+	}
+
+	if y < statusBarHeight {
+		return m
+	}
+
+	contentY := y - statusBarHeight
+	sideWidth := widget.CalculateSideWidth(m.width)
+
+	if x < sideWidth {
+		fileIdx, ok := widget.LookupSidebarEntry(m.diffs, m.flatLines[m.scroller.CursorLine()].FileIdx, m.height, contentY)
+		if !ok {
+			return m
+		}
+		for i, fl := range m.flatLines {
+			if fl.FileIdx == fileIdx && !fl.IsHeader {
+				m.scroller.GoToTop()
+				for m.scroller.CursorLine() < i {
+					m.scroller.MoveDown(len(m.flatLines))
+				}
+				return m
+			}
+		}
+		return m
+	}
+
+	start := m.scroller.Scroll()
+	vis := m.VisibleLines()
+	total := m.TotalLines()
+	end := min(start+vis, total)
+	visualRow := 0
+	targetLine := end - 1
+	for gi := start; gi < end; gi++ {
+		fl := m.flatLines[gi]
+		h := 1
+		if fl.IsHeader {
+			h = 3
+			if fl.FileIdx > 0 {
+				h = 4
+			}
+		}
+		if visualRow+h > contentY {
+			targetLine = gi
+			break
+		}
+		visualRow += h
+	}
+	m.scroller.GoToTop()
+	for m.scroller.CursorLine() < targetLine {
+		m.scroller.MoveDown(len(m.flatLines))
+	}
+	for m.scroller.CursorLine() < len(m.flatLines)-1 && m.flatLines[m.scroller.CursorLine()].IsHeader {
+		m.scroller.MoveDown(len(m.flatLines))
+	}
+	return m
 }

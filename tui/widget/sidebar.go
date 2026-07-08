@@ -202,3 +202,31 @@ func truncate(s string, maxLen int) string {
 	}
 	return string([]rune(s)[:maxLen-3]) + "."
 }
+
+func LookupSidebarEntry(files []git.SideBySideDiff, fileIdx int, height int, y int) (int, bool) {
+	entries := buildVisualEntries(files)
+	maxLines := max(height-statusBarHeight, 1)
+	selPos := 0
+	for i, e := range entries {
+		if !e.isDir && e.fileIdx == fileIdx {
+			selPos = i
+			break
+		}
+	}
+	start := 0
+	if selPos >= maxLines {
+		start = selPos - maxLines + 1
+	}
+	visible := entries[start:]
+	if len(visible) > maxLines {
+		visible = visible[:maxLines]
+	}
+	if y < 0 || y >= len(visible) {
+		return 0, false
+	}
+	e := visible[y]
+	if e.isDir {
+		return 0, false
+	}
+	return e.fileIdx, true
+}

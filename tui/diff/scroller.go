@@ -10,6 +10,7 @@ type Scroller struct {
 	scroll     int
 	cursorLine int
 	hScroll    int
+	scrollLock bool
 }
 
 func NewScroller() *Scroller {
@@ -70,7 +71,22 @@ func (s *Scroller) ClampHScroll(maxScroll int) {
 	}
 }
 
+func (s *Scroller) ScrollViewBy(delta int, total int) {
+	if total <= 0 {
+		return
+	}
+	s.scroll = max(0, min(s.scroll+delta, total-1))
+	s.scrollLock = true
+}
+
 func (s *Scroller) UpdateScroll(total int, vis int) {
+	if s.scrollLock {
+		s.scrollLock = false
+		if s.cursorLine >= total {
+			s.cursorLine = max(total-1, 0)
+		}
+		return
+	}
 	if total == 0 || vis <= 0 {
 		s.scroll = 0
 		return
