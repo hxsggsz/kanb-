@@ -158,6 +158,10 @@ func (m *Model) handleMouseWheel(msg tea.MouseWheelMsg) *Model {
 		m.scroller.ScrollViewBy(-mouseScrollSpeed, m.TotalLines())
 	case tea.MouseWheelDown:
 		m.scroller.ScrollViewBy(mouseScrollSpeed, m.TotalLines())
+	case tea.MouseWheelLeft:
+		m.scroller.ScrollLeft()
+	case tea.MouseWheelRight:
+		m.scroller.ScrollRight()
 	}
 	return m
 }
