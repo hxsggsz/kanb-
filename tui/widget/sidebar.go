@@ -1,4 +1,4 @@
-package tui
+package widget
 
 import (
 	"path/filepath"
@@ -7,9 +7,18 @@ import (
 	"unicode/utf8"
 
 	models "kanba/tui/models"
+	"kanba/tui/diff"
 
 	"charm.land/lipgloss/v2"
 	"kanba/git"
+)
+
+const (
+	statusBarHeight     = 4
+	sidebarMinWidth     = 15
+	sidebarMaxWidth     = 35
+	sidebarDefaultWidth = 25
+	sidebarDenominator  = 4
 )
 
 type visualEntry struct {
@@ -26,10 +35,10 @@ type Sidebar struct {
 	maxLines      int
 	contentHeight int
 	theme         models.Theme
-	stats         []fileStat
+	stats         []diff.FileStat
 }
 
-func NewSidebar(files []git.SideBySideDiff, fileIdx int, width int, height int, theme models.Theme, stats []fileStat) *Sidebar {
+func NewSidebar(files []git.SideBySideDiff, fileIdx int, width int, height int, theme models.Theme, stats []diff.FileStat) *Sidebar {
 	maxLines := max(height-statusBarHeight, 1)
 	return &Sidebar{
 		files:    files,
@@ -125,11 +134,11 @@ func (s *Sidebar) renderFile(e visualEntry) string {
 	delStyle := bg.Foreground(lipgloss.Color(s.theme.SidebarDeleted))
 
 	var statsSegs []string
-	if st.added > 0 {
-		statsSegs = append(statsSegs, addStyle.Render("+"+strconv.Itoa(st.added)))
+	if st.Added > 0 {
+		statsSegs = append(statsSegs, addStyle.Render("+"+strconv.Itoa(st.Added)))
 	}
-	if st.deleted > 0 {
-		statsSegs = append(statsSegs, delStyle.Render("-"+strconv.Itoa(st.deleted)))
+	if st.Deleted > 0 {
+		statsSegs = append(statsSegs, delStyle.Render("-"+strconv.Itoa(st.Deleted)))
 	}
 	var statsStr string
 	if len(statsSegs) > 0 {

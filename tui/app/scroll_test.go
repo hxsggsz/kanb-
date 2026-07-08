@@ -1,8 +1,10 @@
-package tui
+package app
 
 import (
 	"fmt"
 	"testing"
+
+	"kanba/tui/diff"
 
 	tea "charm.land/bubbletea/v2"
 	"kanba/git"
@@ -21,23 +23,23 @@ func TestCursorStopsAtReturnZero(t *testing.T) {
 		{Kind: git.KindModified, OldLineNum: 37, NewLineNum: 37, OldContent: "err     error", NewContent: "loading    bool"},
 		{Kind: git.KindModified, OldLineNum: 38, NewLineNum: 38, OldContent: "width   int", NewContent: "err        error"},
 		{Kind: git.KindModified, OldLineNum: 39, NewLineNum: 39, OldContent: "height  int", NewContent: "width      int"},
-		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 40, NewContent: "height     int"},
+		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 40, OldContent: "height     int"},
 		{Kind: git.KindContext, OldLineNum: 40, NewLineNum: 41, OldContent: "", NewContent: ""},
 		{Kind: git.KindContext, OldLineNum: 41, NewLineNum: 42, OldContent: "repoPath string", NewContent: "repoPath string"},
 		{Kind: git.KindContext, OldLineNum: 42, NewLineNum: 43, OldContent: "gitArgs  []string", NewContent: "gitArgs  []string"},
 		{Kind: git.KindContext, OldLineNum: 43, NewLineNum: 44, OldContent: "}", NewContent: "}"},
 		{Kind: git.KindContext, OldLineNum: 44, NewLineNum: 45, OldContent: "", NewContent: ""},
-		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 46, NewContent: "func (m *model) totalLines() int {"},
-		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 47, NewContent: "if len(m.diffs) == 0 {"},
-		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 48, NewContent: "return 0"},
-		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 49, NewContent: "}"},
-		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 50, NewContent: "f := m.diffs[m.fileIdx]"},
-		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 51, NewContent: "total := 0"},
-		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 52, NewContent: "for _, h := range f.Hunks {"},
-		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 53, NewContent: "total += hunkHeaderLines + len(h.Lines)"},
-		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 54, NewContent: "}"},
-		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 55, NewContent: "return total"},
-		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 56, NewContent: "}"},
+		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 46, OldContent: "func (m *model) totalLines() int {"},
+		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 47, OldContent: "if len(m.diffs) == 0 {"},
+		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 48, OldContent: "return 0"},
+		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 49, OldContent: "}"},
+		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 50, OldContent: "f := m.diffs[m.fileIdx]"},
+		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 51, OldContent: "total := 0"},
+		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 52, OldContent: "for _, h := range f.Hunks {"},
+		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 53, OldContent: "total += hunkHeaderLines + len(h.Lines)"},
+		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 54, OldContent: "}"},
+		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 55, OldContent: "return total"},
+		{Kind: git.KindAdded, OldLineNum: 0, NewLineNum: 56, OldContent: "}"},
 		{Kind: git.KindContext, OldLineNum: 45, NewLineNum: 57, OldContent: "", NewContent: ""},
 		{Kind: git.KindContext, OldLineNum: 46, NewLineNum: 58, OldContent: "func New(repoPath string, gitArgs []string) tea.Model {", NewContent: "func New(repoPath string, gitArgs []string) tea.Model {"},
 		{Kind: git.KindContext, OldLineNum: 47, NewLineNum: 59, OldContent: "return &model{", NewContent: "return &model{"},
@@ -76,11 +78,11 @@ func TestCursorStopsAtReturnZero(t *testing.T) {
 
 	for height := 12; height <= 40; height++ {
 		t.Run(fmt.Sprintf("height=%d", height), func(t *testing.T) {
-			m := &model{
+			m := &Model{
 				diffs:     []git.SideBySideDiff{f},
-				flatLines: buildFlatLines([]git.SideBySideDiff{f}),
-				fileStats: computeFileStats([]git.SideBySideDiff{f}),
-				scroller:  NewScroller(),
+				flatLines: diff.BuildFlatLines([]git.SideBySideDiff{f}),
+				fileStats: diff.ComputeFileStats([]git.SideBySideDiff{f}),
+				scroller:  diff.NewScroller(),
 				width:     80,
 				height:    height,
 			}
@@ -88,14 +90,14 @@ func TestCursorStopsAtReturnZero(t *testing.T) {
 			totalLines := len(m.flatLines)
 			t.Logf("h1Lines=%d, h2Lines=%d, totalLines=%d", len(h1Lines), len(h2Lines), totalLines)
 
-			vis := m.visibleLines()
+			vis := m.VisibleLines()
 			if vis <= 0 {
 				t.Skip("vis <= 0")
 			}
 
 			for i := 0; i < totalLines-1; i++ {
 				m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
-				m.renderContinuous(80, m.visibleLines())
+				m.renderContinuous(80, m.VisibleLines())
 
 				visPos := m.scroller.CursorLine() - m.scroller.Scroll()
 				if visPos < 0 || visPos >= vis {
@@ -108,8 +110,8 @@ func TestCursorStopsAtReturnZero(t *testing.T) {
 				t.Fatalf("expected cursorLine=%d (last line), got %d", totalLines-1, m.scroller.CursorLine())
 			}
 
-			if m.totalLines() != totalLines {
-				t.Fatalf("m.totalLines()=%d != expected totalLines=%d", m.totalLines(), totalLines)
+			if m.TotalLines() != totalLines {
+				t.Fatalf("m.TotalLines()=%d != expected totalLines=%d", m.TotalLines(), totalLines)
 			}
 		})
 	}
@@ -132,17 +134,17 @@ func TestScrollForDifferentHeights(t *testing.T) {
 				Hunks:   []git.AlignedHunk{h},
 			}
 
-			m := &model{
+			m := &Model{
 				diffs:     []git.SideBySideDiff{f},
-				flatLines: buildFlatLines([]git.SideBySideDiff{f}),
-				fileStats: computeFileStats([]git.SideBySideDiff{f}),
-				scroller:  NewScroller(),
+				flatLines: diff.BuildFlatLines([]git.SideBySideDiff{f}),
+				fileStats: diff.ComputeFileStats([]git.SideBySideDiff{f}),
+				scroller:  diff.NewScroller(),
 				width:     80,
 				height:    height,
 			}
 
-			total := m.totalLines()
-			vis := m.visibleLines()
+			total := m.TotalLines()
+			vis := m.VisibleLines()
 
 			if vis <= 0 {
 				t.Skip("visible lines <= 0")
@@ -150,7 +152,7 @@ func TestScrollForDifferentHeights(t *testing.T) {
 
 			for i := 0; i < total-1; i++ {
 				m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
-				m.renderContinuous(80, m.visibleLines())
+				m.renderContinuous(80, m.VisibleLines())
 
 				visPos := m.scroller.CursorLine() - m.scroller.Scroll()
 				if visPos < 0 || visPos >= vis {
@@ -169,7 +171,7 @@ func TestScrollForDifferentHeights(t *testing.T) {
 
 			for i := 0; i < total-1; i++ {
 				m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyUp})
-				m.renderContinuous(80, m.visibleLines())
+				m.renderContinuous(80, m.VisibleLines())
 
 				visPos := m.scroller.CursorLine() - m.scroller.Scroll()
 				if visPos < 0 || visPos >= vis {
@@ -224,17 +226,17 @@ func TestScrollStallDetector(t *testing.T) {
 				Hunks:   []git.AlignedHunk{h},
 			}
 
-			m := &model{
+			m := &Model{
 				diffs:     []git.SideBySideDiff{f},
-				flatLines: buildFlatLines([]git.SideBySideDiff{f}),
-				fileStats: computeFileStats([]git.SideBySideDiff{f}),
-				scroller:  NewScroller(),
+				flatLines: diff.BuildFlatLines([]git.SideBySideDiff{f}),
+				fileStats: diff.ComputeFileStats([]git.SideBySideDiff{f}),
+				scroller:  diff.NewScroller(),
 				width:     80,
 				height:    tc.height,
 			}
 
-			total := m.totalLines()
-			vis := m.visibleLines()
+			total := m.TotalLines()
+			vis := m.VisibleLines()
 
 			if vis <= 0 {
 				t.Skip("vis <= 0")
@@ -252,9 +254,9 @@ func TestScrollStallDetector(t *testing.T) {
 				if i > 0 {
 					m.handleDiffKeys(tea.KeyPressMsg{Code: tea.KeyDown})
 				}
-				m.renderContinuous(80, m.visibleLines())
+				m.renderContinuous(80, m.VisibleLines())
 
-				if m.scroller.Scroll() == prevScroll && m.scroller.CursorLine() > m.scroller.Scroll()+vis-scrollMargin {
+				if m.scroller.Scroll() == prevScroll && m.scroller.CursorLine() > m.scroller.Scroll()+vis-8 {
 					if m.scroller.Scroll() < maxScroll {
 						stallCount++
 						if stallCount > 3 {

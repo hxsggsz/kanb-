@@ -1,16 +1,20 @@
-package tui
+package app
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
 
+	"kanba/tui/diff"
+	"kanba/tui/setting"
+	"kanba/tui/widget"
+
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"kanba/git"
 )
 
-func (m *model) View() tea.View {
+func (m *Model) View() tea.View {
 	v := tea.NewView("")
 	v.AltScreen = true
 	v.WindowTitle = "kanba"
@@ -38,8 +42,8 @@ func (m *model) View() tea.View {
 	return v
 }
 
-func (m *model) loadingView() string {
-	theme := m.currentTheme()
+func (m *Model) loadingView() string {
+	theme := m.CurrentTheme()
 	return lipgloss.NewStyle().
 		Background(lipgloss.Color(theme.PanelBg)).
 		Foreground(lipgloss.Color(theme.LoadingFg)).
@@ -47,8 +51,8 @@ func (m *model) loadingView() string {
 		Render(" Loading diffs...")
 }
 
-func (m *model) errorView() string {
-	theme := m.currentTheme()
+func (m *Model) errorView() string {
+	theme := m.CurrentTheme()
 	return lipgloss.NewStyle().
 		Background(lipgloss.Color(theme.PanelBg)).
 		Foreground(lipgloss.Color(theme.ErrorFg)).
@@ -57,8 +61,8 @@ func (m *model) errorView() string {
 		Render(fmt.Sprintf("Error: %v\n\nPress any key to exit.", m.err))
 }
 
-func (m *model) emptyView() string {
-	theme := m.currentTheme()
+func (m *Model) emptyView() string {
+	theme := m.CurrentTheme()
 	return lipgloss.NewStyle().
 		Background(lipgloss.Color(theme.PanelBg)).
 		Foreground(lipgloss.Color(theme.LoadingFg)).
@@ -66,37 +70,37 @@ func (m *model) emptyView() string {
 		Render(" No changes to show.")
 }
 
-func (m *model) diffView() string {
+func (m *Model) diffView() string {
 	if len(m.flatLines) == 0 {
 		return ""
 	}
 
-	theme := m.currentTheme()
+	theme := m.CurrentTheme()
 
-	sideWidth := CalculateSideWidth(m.width)
-	cursorFileIdx := m.flatLines[m.scroller.CursorLine()].fileIdx
+	sideWidth := widget.CalculateSideWidth(m.width)
+	cursorFileIdx := m.flatLines[m.scroller.CursorLine()].FileIdx
 
-	sidebar := NewSidebar(m.diffs, cursorFileIdx, sideWidth, m.height, theme, m.fileStats)
+	sidebar := widget.NewSidebar(m.diffs, cursorFileIdx, sideWidth, m.height, theme, m.fileStats)
 	sidebarStr := sidebar.Render()
 
-	contentVis := m.visibleLines()
+	contentVis := m.VisibleLines()
 	panelWidth := max(m.width-sideWidth-panelBorderWidth, panelMinWidth)
 	content := m.renderContinuous(panelWidth, contentVis)
 
 	f := m.diffs[cursorFileIdx]
-	statusBar := NewStatusBar(f.NewPath, cursorFileIdx, len(m.diffs), m.scroller.CursorLine(), len(m.flatLines), m.width, theme)
+	statusBar := widget.NewStatusBar(f.NewPath, cursorFileIdx, len(m.diffs), m.scroller.CursorLine(), len(m.flatLines), m.width, theme)
 
 	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebarStr, content)
 	result := fmt.Sprintf("%s\n%s", statusBar.Render(), body)
 
-	theme = m.currentTheme()
+	theme = m.CurrentTheme()
 	result = lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg)).Render(result)
 	result = m.themeModal.Overlay(result, theme.PanelBg, theme.SidebarSelected, sideWidth, panelWidth)
 
 	return result
 }
 
-func (m *model) renderContinuous(width int, vis int) string {
+func (m *Model) renderContinuous(width int, vis int) string {
 	total := len(m.flatLines)
 	if total == 0 {
 		return ""
@@ -106,7 +110,7 @@ func (m *model) renderContinuous(width int, vis int) string {
 		return ""
 	}
 
-	theme := m.currentTheme()
+	theme := m.CurrentTheme()
 
 	m.scroller.UpdateScroll(total, vis)
 	cursorLine := m.scroller.CursorLine()
@@ -120,13 +124,13 @@ func (m *model) renderContinuous(width int, vis int) string {
 		fl := m.flatLines[gi]
 		cursor := gi == cursorLine
 
-		if fl.isHeader {
+		if fl.IsHeader {
 			lines = append(lines, m.renderFileHeader(fl, width, cursor))
 		} else {
-			f := m.diffs[fl.fileIdx]
-			h := f.Hunks[fl.hunkIdx]
-			ln := h.Lines[fl.lineIdx]
-			fmtr := defaultFormatters[ln.Kind]
+			f := m.diffs[fl.FileIdx]
+			h := f.Hunks[fl.HunkIdx]
+			ln := h.Lines[fl.LineIdx]
+			fmtr := diff.DefaultFormatters[ln.Kind]
 
 			singlePanel := f.Status == "A"
 			colWidth := width
@@ -134,17 +138,17 @@ func (m *model) renderContinuous(width int, vis int) string {
 				colWidth = (width - 3) / 2
 			}
 
-			lines = append(lines, renderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel, theme))
+			lines = append(lines, diff.RenderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel, theme))
 		}
 	}
 
 	return strings.Join(lines, "\n")
 }
 
-func (m *model) renderFileHeader(fl flatLine, colWidth int, cursor bool) string {
-	theme := m.currentTheme()
-	f := m.diffs[fl.fileIdx]
-	stats := m.fileStats[fl.fileIdx]
+func (m *Model) renderFileHeader(fl diff.FlatLine, colWidth int, cursor bool) string {
+	theme := m.CurrentTheme()
+	f := m.diffs[fl.FileIdx]
+	stats := m.fileStats[fl.FileIdx]
 
 	bgColor := theme.PanelHeaderBg
 	if cursor {
@@ -159,14 +163,14 @@ func (m *model) renderFileHeader(fl flatLine, colWidth int, cursor bool) string 
 	var segs []string
 	segs = append(segs, normalStyle.Render(" "+f.NewPath))
 
-	if stats.added > 0 || stats.deleted > 0 {
+	if stats.Added > 0 || stats.Deleted > 0 {
 		segs = append(segs, normalStyle.Render(" ("))
 		var statSegs []string
-		if stats.added > 0 {
-			statSegs = append(statSegs, addStyle.Render("+"+strconv.Itoa(stats.added)))
+		if stats.Added > 0 {
+			statSegs = append(statSegs, addStyle.Render("+"+strconv.Itoa(stats.Added)))
 		}
-		if stats.deleted > 0 {
-			statSegs = append(statSegs, delStyle.Render("-"+strconv.Itoa(stats.deleted)))
+		if stats.Deleted > 0 {
+			statSegs = append(statSegs, delStyle.Render("-"+strconv.Itoa(stats.Deleted)))
 		}
 		segs = append(segs, strings.Join(statSegs, normalStyle.Render(", ")))
 		segs = append(segs, normalStyle.Render(")"))
@@ -179,7 +183,7 @@ func (m *model) renderFileHeader(fl flatLine, colWidth int, cursor bool) string 
 		MarginBackground(lipgloss.Color(bgColor)).
 		Padding(1, 1).
 		Width(colWidth)
-	if fl.fileIdx > 0 {
+	if fl.FileIdx > 0 {
 		style = style.
 			Border(lipgloss.NormalBorder(), true, false, false, false).
 			BorderForeground(lipgloss.Color(theme.SidebarDir)).
@@ -201,16 +205,16 @@ func maxFileContentWidth(f git.SideBySideDiff) int {
 	return maxWidth
 }
 
-func (m *model) helpView() string {
-	theme := m.currentTheme()
+func (m *Model) helpView() string {
+	theme := m.CurrentTheme()
 	var content strings.Builder
 	content.WriteString(" Keybindings\n\n")
 	bindings := []struct{ key, desc string }{
-		{"↑/k", "Cursor up"},
-		{"↓/j", "Cursor down"},
-		{"h/←", "Scroll left 8 cols"},
-		{"l/→", "Scroll right 8 cols"},
-		{"C-←/C-→", "Scroll 32 cols"},
+		{"\u2191/k", "Cursor up"},
+		{"\u2193/j", "Cursor down"},
+		{"h/\u2190", "Scroll left 8 cols"},
+		{"l/\u2192", "Scroll right 8 cols"},
+		{"C-\u2190/C-\u2192", "Scroll 32 cols"},
 		{"_", "Go to line start"},
 		{"$", "Go to line end"},
 		{"g", "Go to top"},
@@ -222,7 +226,7 @@ func (m *model) helpView() string {
 	for _, b := range bindings {
 		fmt.Fprintf(&content, "  %-12s %s\n", b.key, b.desc)
 	}
-	return helpStyle.
+	return setting.HelpStyle.
 		Background(lipgloss.Color(theme.PanelBg)).
 		Foreground(lipgloss.Color(theme.ContextFg)).
 		Render(content.String())

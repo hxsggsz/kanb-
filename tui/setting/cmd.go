@@ -1,4 +1,4 @@
-package tui
+package setting
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"kanba/git"
 )
 
-func gitDiffCmd(repoPath string, args []string) tea.Cmd {
+func GitDiffCmd(repoPath string, args []string) tea.Cmd {
 	return func() tea.Msg {
 		runner := git.NewGitRunner(repoPath)
 		cmd := &git.DiffCommand{
@@ -17,12 +17,12 @@ func gitDiffCmd(repoPath string, args []string) tea.Cmd {
 		}
 		diffs, err := git.Execute(context.Background(), runner, cmd)
 		if err != nil {
-			return diffMsg{nil, err}
+			return DiffMsg{nil, err}
 		}
 
 		untracked, err := git.Execute(context.Background(), runner, &git.LsFilesCommand{})
 		if err != nil {
-			return diffMsg{diffs, nil}
+			return DiffMsg{diffs, nil}
 		}
 
 		for _, fp := range untracked {
@@ -32,6 +32,6 @@ func gitDiffCmd(repoPath string, args []string) tea.Cmd {
 			}
 		}
 
-		return diffMsg{diffs, nil}
+		return DiffMsg{diffs, nil}
 	}
 }

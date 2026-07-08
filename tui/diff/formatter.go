@@ -1,4 +1,4 @@
-package tui
+package diff
 
 import (
 	"fmt"
@@ -11,6 +11,8 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"kanba/git"
 )
+
+const LineNumColWidth = 4
 
 var emptyStyle = lipgloss.NewStyle()
 
@@ -59,7 +61,7 @@ func (modifiedFormatter) RightPrefix(git.AlignedLine) string       { return "+" 
 func (modifiedFormatter) LeftStyle(git.AlignedLine, bool) lipgloss.Style  { return emptyStyle }
 func (modifiedFormatter) RightStyle(git.AlignedLine, bool) lipgloss.Style { return emptyStyle }
 
-var defaultFormatters = NewDefaultFormatters()
+var DefaultFormatters = NewDefaultFormatters()
 
 func NewDefaultFormatters() map[git.LineKind]LineFormatter {
 	return map[git.LineKind]LineFormatter{
@@ -71,7 +73,7 @@ func NewDefaultFormatters() map[git.LineKind]LineFormatter {
 
 }
 
-func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor bool, sh *SyntaxHighlighter, filePath string, hScroll int, singlePanel bool, theme models.Theme) string {
+func RenderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor bool, sh *SyntaxHighlighter, filePath string, hScroll int, singlePanel bool, theme models.Theme) string {
 	oldNum := ""
 	if ln.OldLineNum > 0 {
 		oldNum = strconv.Itoa(ln.OldLineNum)
@@ -84,7 +86,7 @@ func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor
 	leftContent := f.LeftContent(ln)
 	rightContent := f.RightContent(ln)
 
-	contentAreaWidth := colWidth - (lineNumColWidth + 3)
+	contentAreaWidth := colWidth - (LineNumColWidth + 3)
 	if contentAreaWidth < 0 {
 		contentAreaWidth = 0
 	}
@@ -92,12 +94,12 @@ func renderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor
 	rightContent = ansi.Cut(rightContent, hScroll, hScroll+contentAreaWidth)
 
 	if singlePanel {
-		prefix := fmt.Sprintf("%*s %s ", lineNumColWidth, newNum, f.RightPrefix(ln))
+		prefix := fmt.Sprintf("%*s %s ", LineNumColWidth, newNum, f.RightPrefix(ln))
 		return renderStyledLine(prefix, rightContent, colWidth, ln.Kind, false, cursor, sh, filePath, theme)
 	}
 
-	leftPrefix := fmt.Sprintf("%*s %s ", lineNumColWidth, oldNum, f.LeftPrefix(ln))
-	rightPrefix := fmt.Sprintf("%*s %s ", lineNumColWidth, newNum, f.RightPrefix(ln))
+	leftPrefix := fmt.Sprintf("%*s %s ", LineNumColWidth, oldNum, f.LeftPrefix(ln))
+	rightPrefix := fmt.Sprintf("%*s %s ", LineNumColWidth, newNum, f.RightPrefix(ln))
 
 	leftRendered := renderStyledLine(leftPrefix, leftContent, colWidth, ln.Kind, true, cursor, sh, filePath, theme)
 	rightRendered := renderStyledLine(rightPrefix, rightContent, colWidth, ln.Kind, false, cursor, sh, filePath, theme)

@@ -1,4 +1,4 @@
-package tui
+package diff
 
 const (
 	scrollMargin       = 8

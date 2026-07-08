@@ -1,4 +1,4 @@
-package tui
+package diff
 
 import (
 	"strings"
@@ -18,8 +18,8 @@ func TestRenderAlignedLinePreservesANSI(t *testing.T) {
 		NewContent: "func main() {",
 		Kind:       git.KindContext,
 	}
-	fmtr := defaultFormatters[ln.Kind]
-	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
+	fmtr := DefaultFormatters[ln.Kind]
+	result := RenderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
 	if !strings.Contains(result, "\x1b[") {
 		t.Fatal("expected ANSI escape codes in rendered output")
 	}
@@ -32,8 +32,8 @@ func TestRenderAlignedLineAddsBackground(t *testing.T) {
 		NewContent: "func main() {",
 		Kind:       git.KindAdded,
 	}
-	fmtr := defaultFormatters[ln.Kind]
-	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
+	fmtr := DefaultFormatters[ln.Kind]
+	result := RenderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
 
 	if !strings.Contains(result, "48;2;51;60;72") {
 		t.Fatalf("expected added background, got: %q", result)
@@ -61,8 +61,8 @@ func TestRenderAlignedLineDeletedBackground(t *testing.T) {
 		OldContent: "func main() {",
 		Kind:       git.KindDeleted,
 	}
-	fmtr := defaultFormatters[ln.Kind]
-	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
+	fmtr := DefaultFormatters[ln.Kind]
+	result := RenderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
 
 	if !strings.Contains(result, "48;2;67;41;58") {
 		t.Fatalf("expected removed background, got: %q", result)
@@ -81,8 +81,8 @@ func TestRenderAlignedLineSinglePanel(t *testing.T) {
 		NewContent: "func main() {",
 		Kind:       git.KindAdded,
 	}
-	fmtr := defaultFormatters[ln.Kind]
-	result := renderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, true, models.GetTheme("rose-pine"))
+	fmtr := DefaultFormatters[ln.Kind]
+	result := RenderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, true, models.GetTheme("rose-pine"))
 
 	if strings.Contains(result, " │ ") {
 		t.Fatal("single-panel result should not contain separator")
