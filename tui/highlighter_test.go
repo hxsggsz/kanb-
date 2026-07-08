@@ -4,13 +4,17 @@ import (
 	"strings"
 	"testing"
 
+	models "kanba/tui/models"
+
 	"charm.land/lipgloss/v2"
 )
+
+var testTheme = models.Themes["rose-pine"]
 
 func TestHighlighterHighlightsGoCode(t *testing.T) {
 	sh := NewSyntaxHighlighter()
 	code := "func main() {}"
-	result := sh.HighlightWithStyle(code, "main.go", lipgloss.NewStyle())
+	result := sh.HighlightWithStyle(code, "main.go", lipgloss.NewStyle(), testTheme)
 	if result == code {
 		t.Fatal("expected ANSI escape sequences in highlighted Go code")
 	}
@@ -22,7 +26,7 @@ func TestHighlighterHighlightsGoCode(t *testing.T) {
 func TestHighlighterFallbackForUnknownExtension(t *testing.T) {
 	sh := NewSyntaxHighlighter()
 	code := "some random text without a known extension"
-	result := sh.HighlightWithStyle(code, "unknown.xyz", lipgloss.NewStyle())
+	result := sh.HighlightWithStyle(code, "unknown.xyz", lipgloss.NewStyle(), testTheme)
 	if !strings.HasPrefix(result, "\x1b[") && result != code {
 		t.Fatal("expected plain code or styled output when no lexer matches")
 	}
@@ -30,15 +34,15 @@ func TestHighlighterFallbackForUnknownExtension(t *testing.T) {
 
 func TestHighlighterCachesLexers(t *testing.T) {
 	sh := NewSyntaxHighlighter()
-	r1 := sh.HighlightWithStyle("func a() {}", "a.go", lipgloss.NewStyle())
-	r2 := sh.HighlightWithStyle("func b() {}", "b.go", lipgloss.NewStyle())
+	r1 := sh.HighlightWithStyle("func a() {}", "a.go", lipgloss.NewStyle(), testTheme)
+	r2 := sh.HighlightWithStyle("func b() {}", "b.go", lipgloss.NewStyle(), testTheme)
 	if !strings.Contains(r1, "\x1b[") {
 		t.Fatal("expected ANSI in first result")
 	}
 	if !strings.Contains(r2, "\x1b[") {
 		t.Fatal("expected ANSI in second result")
 	}
-	r3 := sh.HighlightWithStyle("func c() {}", "a.go", lipgloss.NewStyle())
+	r3 := sh.HighlightWithStyle("func c() {}", "a.go", lipgloss.NewStyle(), testTheme)
 	if r3 == "" {
 		t.Fatal("expected non-empty cached result")
 	}
@@ -49,7 +53,7 @@ func TestHighlighterCachesLexers(t *testing.T) {
 
 func TestHighlighterEmptyCode(t *testing.T) {
 	sh := NewSyntaxHighlighter()
-	result := sh.HighlightWithStyle("", "main.go", lipgloss.NewStyle())
+	result := sh.HighlightWithStyle("", "main.go", lipgloss.NewStyle(), testTheme)
 	if result != "" {
 		t.Fatal("expected empty string for empty input")
 	}

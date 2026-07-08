@@ -152,7 +152,7 @@ func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLe
 
 	var contentRendered string
 	if sh != nil {
-		contentRendered = sh.HighlightWithStyle(content, filePath, baseStyle)
+		contentRendered = sh.HighlightWithStyle(content, filePath, baseStyle, theme)
 	} else if cursor || bgColor != "" {
 		contentRendered = baseStyle.Render(content)
 	} else {

@@ -8,7 +8,8 @@ import (
 )
 
 type Theme struct {
-	Name       string
+	Name      string
+	ChromaKey string
 	Appearance string
 
 	AddedBg           string
@@ -41,7 +42,8 @@ type Theme struct {
 
 var Themes = map[string]Theme{
 	"rose-pine": {
-		Name:       "Rosé Pine",
+		Name:      "Rosé Pine",
+		ChromaKey: "rose-pine",
 		Appearance: "dark",
 		AddedBg:           "#333c48",
 		RemovedBg:         "#43293a",
@@ -65,7 +67,8 @@ var Themes = map[string]Theme{
 		BorderColor: "#e0def4",
 	},
 	"rose-pine-moon": {
-		Name:       "Rosé Pine Moon",
+		Name:      "Rosé Pine Moon",
+		ChromaKey: "rose-pine-moon",
 		Appearance: "dark",
 		AddedBg:           "#3b4456",
 		RemovedBg:         "#4b3148",
@@ -89,7 +92,8 @@ var Themes = map[string]Theme{
 		BorderColor: "#e0def4",
 	},
 	"rose-pine-dawn": {
-		Name:       "Rosé Pine Dawn",
+		Name:      "Rosé Pine Dawn",
+		ChromaKey: "rose-pine-dawn",
 		Appearance: "light",
 		AddedBg:           "#e6e8e4",
 		RemovedBg:         "#f2e3df",
