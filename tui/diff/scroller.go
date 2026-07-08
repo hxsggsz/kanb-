@@ -43,26 +43,32 @@ func (s *Scroller) GoToBottom(total int) {
 
 func (s *Scroller) ScrollLeft() {
 	s.hScroll = max(0, s.hScroll-hScrollStep)
+	s.scrollLock = true
 }
 
 func (s *Scroller) ScrollRight() {
 	s.hScroll += hScrollStep
+	s.scrollLock = true
 }
 
 func (s *Scroller) ScrollLeftFast() {
 	s.hScroll = max(0, s.hScroll-hScrollFastStep)
+	s.scrollLock = true
 }
 
 func (s *Scroller) ScrollRightFast() {
 	s.hScroll += hScrollFastStep
+	s.scrollLock = true
 }
 
 func (s *Scroller) ScrollHome() {
 	s.hScroll = 0
+	s.scrollLock = true
 }
 
 func (s *Scroller) ScrollEnd(maxScroll int) {
 	s.hScroll = maxScroll
+	s.scrollLock = true
 }
 
 func (s *Scroller) ClampHScroll(maxScroll int) {

@@ -8,7 +8,6 @@ import (
 	"kanba/tui/diff"
 	"kanba/tui/models"
 	"kanba/tui/overlay"
-	"kanba/tui/widget"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -34,8 +33,8 @@ func (m *Model) View() tea.View {
 		return v
 	}
 
-	if m.screen == screenDiff {
-		v.SetContent(m.diffView())
+	if m.activeMode != nil {
+		v.SetContent(m.activeMode.Render(m))
 	}
 
 	return v
@@ -69,40 +68,6 @@ func (m *Model) emptyView() string {
 		Render(" No changes to show.")
 }
 
-func (m *Model) diffView() string {
-	if len(m.flatLines) == 0 {
-		return ""
-	}
-
-	theme := m.CurrentTheme()
-
-	sideWidth := widget.CalculateSideWidth(m.width)
-	cursorFileIdx := m.flatLines[m.scroller.CursorLine()].FileIdx
-
-	sidebar := widget.NewSidebar(m.diffs, cursorFileIdx, sideWidth, m.height, theme, m.fileStats)
-	sidebarStr := sidebar.Render()
-
-	contentVis := m.VisibleLines()
-	panelWidth := max(m.width-sideWidth-panelBorderWidth, panelMinWidth)
-	content := m.renderContinuous(panelWidth, contentVis)
-
-	f := m.diffs[cursorFileIdx]
-	statusBar := widget.NewStatusBar(f.NewPath, cursorFileIdx, len(m.diffs), m.scroller.CursorLine(), len(m.flatLines), m.width, theme)
-
-	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebarStr, content)
-	result := fmt.Sprintf("%s\n%s", statusBar.Render(), body)
-
-	theme = m.CurrentTheme()
-	result = lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg)).Render(result)
-	result = m.themeModal.Overlay(result, theme.PanelBg, theme.SidebarSelected, theme.ContextFg, sideWidth, panelWidth)
-
-	if m.helpActive {
-		result = m.helpOverlay(result, theme, sideWidth, panelWidth)
-	}
-
-	return result
-}
-
 func (m *Model) renderContinuous(width int, vis int) string {
 	total := len(m.flatLines)
 	if total == 0 {
@@ -122,13 +87,16 @@ func (m *Model) renderContinuous(width int, vis int) string {
 	start := m.scroller.Scroll()
 	end := min(start+vis, total)
 
+	padStyle := lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg))
+
 	var lines []string
 	for gi := start; gi < end; gi++ {
 		fl := m.flatLines[gi]
 		cursor := gi == cursorLine
 
+		var line string
 		if fl.IsHeader {
-			lines = append(lines, m.renderFileHeader(fl, width, cursor))
+			line = m.renderFileHeader(fl, width, cursor)
 		} else {
 			f := m.diffs[fl.FileIdx]
 			h := f.Hunks[fl.HunkIdx]
@@ -138,11 +106,16 @@ func (m *Model) renderContinuous(width int, vis int) string {
 			singlePanel := f.Status == "A"
 			colWidth := width
 			if !singlePanel {
-				colWidth = (width - 3) / 2
+				colWidth = width / 2
 			}
 
-			lines = append(lines, diff.RenderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel, theme))
+			line = diff.RenderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel, theme)
 		}
+
+		if w := lipgloss.Width(line); w < width {
+			line += padStyle.Render(strings.Repeat(" ", width-w))
+		}
+		lines = append(lines, line)
 	}
 
 	return strings.Join(lines, "\n")

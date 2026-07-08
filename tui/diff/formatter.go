@@ -104,22 +104,7 @@ func RenderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor
 	leftRendered := renderStyledLine(leftPrefix, leftContent, colWidth, ln.Kind, true, cursor, sh, filePath, theme)
 	rightRendered := renderStyledLine(rightPrefix, rightContent, colWidth, ln.Kind, false, cursor, sh, filePath, theme)
 
-	sep := styledSep(ln.Kind, cursor, theme)
-	return leftRendered + sep + rightRendered
-}
-
-func styledSep(kind git.LineKind, cursor bool, theme models.Theme) string {
-	bg := theme.BgFor(kind, true)
-	if bg == "" {
-		bg = theme.PanelBg
-	}
-	s := lipgloss.NewStyle()
-	if cursor {
-		s = s.Background(lipgloss.Color(theme.CursorBgFor(bg)))
-	} else {
-		s = s.Background(lipgloss.Color(bg))
-	}
-	return s.Render(" │ ")
+	return leftRendered + rightRendered
 }
 
 func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLeft bool, cursor bool, sh *SyntaxHighlighter, filePath string, theme models.Theme) string {
@@ -163,6 +148,10 @@ func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLe
 
 	styled := prefixRendered + contentRendered
 	vis := lipgloss.Width(styled)
+	if vis > width {
+		styled = ansi.Truncate(styled, width, "")
+		vis = width
+	}
 	if vis < width {
 		padStyle := baseStyle
 		styled += padStyle.Render(strings.Repeat(" ", width-vis))

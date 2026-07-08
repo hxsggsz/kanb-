@@ -14,6 +14,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.activeMode = m.modeFactory.FromWidth(msg.Width)
 		return m, nil
 
 	case setting.DiffMsg:
@@ -66,8 +67,8 @@ func (m *Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
-	if m.screen == screenDiff {
-		return m.handleDiffKeys(msg)
+	if m.activeMode != nil {
+		return m.activeMode.HandleInput(m, msg)
 	}
 
 	return m, nil
@@ -153,11 +154,19 @@ func (m *Model) handleMouseWheel(msg tea.MouseWheelMsg) *Model {
 		return m
 	}
 
-	switch msg.Button {
-	case tea.MouseWheelUp:
-		m.scroller.ScrollViewBy(-mouseScrollSpeed, m.TotalLines())
-	case tea.MouseWheelDown:
-		m.scroller.ScrollViewBy(mouseScrollSpeed, m.TotalLines())
+		switch msg.Button {
+		case tea.MouseWheelUp:
+			if msg.Mod.Contains(tea.ModShift) {
+				m.scroller.ScrollLeft()
+			} else {
+				m.scroller.ScrollViewBy(-mouseScrollSpeed, m.TotalLines())
+			}
+		case tea.MouseWheelDown:
+			if msg.Mod.Contains(tea.ModShift) {
+				m.scroller.ScrollRight()
+			} else {
+				m.scroller.ScrollViewBy(mouseScrollSpeed, m.TotalLines())
+			}
 	case tea.MouseWheelLeft:
 		m.scroller.ScrollLeft()
 	case tea.MouseWheelRight:

@@ -39,11 +39,6 @@ func TestRenderAlignedLineAddsBackground(t *testing.T) {
 		t.Fatalf("expected added background, got: %q", result)
 	}
 
-	sep := " │ "
-	if !strings.Contains(result, sep) {
-		t.Fatalf("expected separator %q in result: %q", sep, result)
-	}
-
 	rightPrefix := "\x1b[38;2;156;207;216;48;2;51;60;72m"
 	if !strings.Contains(result, rightPrefix) {
 		t.Fatalf("expected right panel to contain %s, got: %q", rightPrefix, result)
@@ -83,10 +78,6 @@ func TestRenderAlignedLineSinglePanel(t *testing.T) {
 	}
 	fmtr := DefaultFormatters[ln.Kind]
 	result := RenderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, true, models.GetTheme("rose-pine"))
-
-	if strings.Contains(result, " │ ") {
-		t.Fatal("single-panel result should not contain separator")
-	}
 
 	if !strings.Contains(result, "48;2;51;60;72") {
 		t.Fatal("expected added background")

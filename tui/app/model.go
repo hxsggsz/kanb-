@@ -16,19 +16,11 @@ const (
 	mouseScrollSpeed = 3
 )
 
-type screen int
-
-const (
-	screenDiff screen = iota
-	screenHelp
-)
-
 type Model struct {
 	diffs       []git.SideBySideDiff
 	flatLines   []diff.FlatLine
 	fileStats   []diff.FileStat
 	scroller    *diff.Scroller
-	screen      screen
 	loading     bool
 	err         error
 	width       int
@@ -39,6 +31,9 @@ type Model struct {
 	highlighter  *diff.SyntaxHighlighter
 	themeModal   *models.Modal
 	helpActive   bool
+
+	activeMode  ViewMode
+	modeFactory *ModeFactory
 }
 
 func (m *Model) TotalLines() int {
@@ -61,6 +56,8 @@ func New(repoPath string, gitArgs []string) *Model {
 	themeModal := models.NewModal("Theme", themeItems)
 	themeModal.Selected = "rose-pine"
 
+	factory := &ModeFactory{}
+
 	return &Model{
 		repoPath:    repoPath,
 		gitArgs:     gitArgs,
@@ -68,6 +65,8 @@ func New(repoPath string, gitArgs []string) *Model {
 		scroller:    diff.NewScroller(),
 		highlighter: diff.NewSyntaxHighlighter(),
 		themeModal:  themeModal,
+		modeFactory: factory,
+		activeMode:  factory.FromWidth(80),
 	}
 }
 

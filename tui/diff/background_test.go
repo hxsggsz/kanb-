@@ -20,10 +20,10 @@ func TestRenderStyledLineAddsBackground(t *testing.T) {
 	}
 }
 
-func TestRenderStyledLineNoExtraWidth(t *testing.T) {
+func TestRenderStyledLineTruncatesToWidth(t *testing.T) {
 	result := renderStyledLine("", "hello world", 5, git.KindContext, false, false, nil, "", models.GetTheme("rose-pine"))
-	if lipgloss.Width(result) != 11 {
-		t.Fatalf("expected visible width 11 (no padding needed), got %d", lipgloss.Width(result))
+	if lipgloss.Width(result) != 5 {
+		t.Fatalf("expected visible width 5 (truncated), got %d", lipgloss.Width(result))
 	}
 }
 
