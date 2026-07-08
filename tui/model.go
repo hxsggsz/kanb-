@@ -14,7 +14,7 @@ const (
 )
 
 const (
-	statusBarHeight = 3
+	statusBarHeight = 4
 	lineNumColWidth = 4
 )
 

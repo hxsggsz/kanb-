@@ -146,7 +146,7 @@ func (m *model) renderFileHeader(fl flatLine, colWidth int, cursor bool) string 
 	f := m.diffs[fl.fileIdx]
 	stats := m.fileStats[fl.fileIdx]
 
-	bgColor := theme.PanelBg
+	bgColor := theme.PanelHeaderBg
 	if cursor {
 		bgColor = theme.CursorBgFor(bgColor)
 	}
@@ -180,7 +180,10 @@ func (m *model) renderFileHeader(fl flatLine, colWidth int, cursor bool) string 
 		Padding(1, 1).
 		Width(colWidth)
 	if fl.fileIdx > 0 {
-		style = style.MarginTop(1)
+		style = style.
+			Border(lipgloss.NormalBorder(), true, false, false, false).
+			BorderForeground(lipgloss.Color(theme.SidebarDir)).
+			BorderBackground(lipgloss.Color(bgColor))
 	}
 	return style.Render(text)
 }

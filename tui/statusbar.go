@@ -32,8 +32,11 @@ func NewStatusBar(fileName string, fileIdx, totalFiles, cursorLine, totalLines, 
 
 func (s *StatusBar) Render() string {
 	style := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder(), false, false, true, false).
+		BorderForeground(lipgloss.Color(s.theme.SidebarDir)).
+		BorderBackground(lipgloss.Color(s.theme.SurfaceBg)).
 		Foreground(lipgloss.Color(s.theme.StatusBarFg)).
-		Background(lipgloss.Color(s.theme.StatusBarBg)).
+		Background(lipgloss.Color(s.theme.SurfaceBg)).
 		Padding(1, 1)
 	return style.Width(s.width).Render(
 		fmt.Sprintf(" ▸ %s  •  Ln %d/%d  •  ↑↓ cursor  •  g/G top/bottom  •  ? help  •  q quit",

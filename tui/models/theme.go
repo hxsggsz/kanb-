@@ -17,8 +17,9 @@ type Theme struct {
 	ModifiedAddedBg   string
 	ModifiedRemovedBg string
 
-	PanelBg      string
-	LineNumberBg string
+	PanelBg       string
+	PanelHeaderBg string
+	LineNumberBg  string
 
 	AddedSign   string
 	RemovedSign string
@@ -33,7 +34,7 @@ type Theme struct {
 	SidebarModified string
 	SidebarDir      string
 
-	StatusBarBg string
+	SurfaceBg    string
 	StatusBarFg string
 
 	ErrorFg      string
@@ -49,8 +50,9 @@ var Themes = map[string]Theme{
 		RemovedBg:         "#43293a",
 		ModifiedAddedBg:   "#333c48",
 		ModifiedRemovedBg: "#43293a",
-		PanelBg:      "#1f1d2e",
-		LineNumberBg: "#26233a",
+		PanelBg:       "#1f1d2e",
+		PanelHeaderBg: "#26233a",
+		LineNumberBg:  "#26233a",
 		AddedSign:    "#9ccfd8",
 		RemovedSign:  "#eb6f92",
 		ContextFg:    "#e0def4",
@@ -61,7 +63,7 @@ var Themes = map[string]Theme{
 		SidebarDeleted:  "#eb6f92",
 		SidebarModified: "#f6c177",
 		SidebarDir:      "#6e6a86",
-		StatusBarBg: "#26233a",
+		SurfaceBg: "#26233a",
 		StatusBarFg: "#e0def4",
 		ErrorFg:      "#eb6f92",
 		LoadingFg:    "#c4a7e7",
@@ -74,8 +76,9 @@ var Themes = map[string]Theme{
 		RemovedBg:         "#4b3148",
 		ModifiedAddedBg:   "#3b4456",
 		ModifiedRemovedBg: "#4b3148",
-		PanelBg:      "#2a273f",
-		LineNumberBg: "#393552",
+		PanelBg:       "#2a273f",
+		PanelHeaderBg: "#393552",
+		LineNumberBg:  "#393552",
 		AddedSign:    "#9ccfd8",
 		RemovedSign:  "#eb6f92",
 		ContextFg:    "#e0def4",
@@ -86,7 +89,7 @@ var Themes = map[string]Theme{
 		SidebarDeleted:  "#eb6f92",
 		SidebarModified: "#f6c177",
 		SidebarDir:      "#6e6a86",
-		StatusBarBg: "#393552",
+		SurfaceBg: "#393552",
 		StatusBarFg: "#e0def4",
 		ErrorFg:      "#eb6f92",
 		LoadingFg:    "#c4a7e7",
@@ -99,8 +102,9 @@ var Themes = map[string]Theme{
 		RemovedBg:         "#f2e3df",
 		ModifiedAddedBg:   "#e6e8e4",
 		ModifiedRemovedBg: "#f2e3df",
-		PanelBg:      "#fffaf3",
-		LineNumberBg: "#f2e9de",
+		PanelBg:       "#fffaf3",
+		PanelHeaderBg: "#f2e9de",
+		LineNumberBg:  "#f2e9de",
 		AddedSign:    "#56949f",
 		RemovedSign:  "#b4637a",
 		ContextFg:    "#575279",
@@ -111,7 +115,7 @@ var Themes = map[string]Theme{
 		SidebarDeleted:  "#b4637a",
 		SidebarModified: "#ea9d34",
 		SidebarDir:      "#6e6a86",
-		StatusBarBg: "#f2e9de",
+		SurfaceBg: "#f2e9de",
 		StatusBarFg: "#575279",
 		ErrorFg:      "#b4637a",
 		LoadingFg:    "#907aa9",

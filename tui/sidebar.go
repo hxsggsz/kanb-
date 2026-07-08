@@ -75,13 +75,18 @@ func (s *Sidebar) Render() string {
 		lineCount++
 	}
 
-	content := strings.TrimRight(sb.String(), "\n")
 	s.contentHeight = lineCount
 
+	content := strings.TrimRight(sb.String(), "\n")
+	for i := lineCount; i < s.maxLines; i++ {
+		content += "\n"
+	}
+
 	return lipgloss.NewStyle().
-		Background(lipgloss.Color(s.theme.SidebarBg)).
-		Padding(1, 1).
-		MarginBackground(lipgloss.Color(s.theme.PanelBg)).
+		Border(lipgloss.RoundedBorder(), false, true, false, false).
+		BorderForeground(lipgloss.Color(s.theme.SidebarDir)).
+		BorderBackground(lipgloss.Color(s.theme.SurfaceBg)).
+		Background(lipgloss.Color(s.theme.SurfaceBg)).
 		Width(s.width).
 		Render(content)
 }
@@ -89,10 +94,10 @@ func (s *Sidebar) Render() string {
 func (s *Sidebar) ContentHeight() int { return s.contentHeight }
 
 func (s *Sidebar) renderDir(dir string) string {
-	avail := s.width - 3
+	avail := s.width - 4
 	return lipgloss.NewStyle().
 		Foreground(lipgloss.Color(s.theme.SidebarDir)).
-		Background(lipgloss.Color(s.theme.SidebarBg)).
+		Background(lipgloss.Color(s.theme.SurfaceBg)).
 		Render(" " + truncate(dir, avail-1))
 }
 
@@ -108,12 +113,12 @@ func statusFg(status string, theme models.Theme) string {
 }
 
 func (s *Sidebar) renderFile(e visualEntry) string {
-	avail := s.width - 3
+	avail := s.width - 4
 
 	_, filename := filepath.Split(e.file.NewPath)
 	st := s.stats[e.fileIdx]
 
-	bg := lipgloss.NewStyle().Background(lipgloss.Color(s.theme.SidebarBg))
+	bg := lipgloss.NewStyle().Background(lipgloss.Color(s.theme.SurfaceBg))
 
 	statusStyle := bg.Foreground(lipgloss.Color(statusFg(e.file.Status, s.theme)))
 	addStyle := bg.Foreground(lipgloss.Color(s.theme.SidebarAdded))
