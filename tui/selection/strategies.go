@@ -30,10 +30,22 @@ func (ws WordStrategy) Select(content string, startCol, endCol int) Range {
 	start := startCol
 	end := endCol
 
-	if s, e := findWordBoundaries(content, startCol); s != e || startCol == 0 || startCol >= len(content) {
+	runes := []rune(content)
+	runeLen := len(runes)
+
+	s, e := findWordBoundaries(content, startCol)
+	wordDiffers := s != e
+	atStart := startCol == 0
+	atEnd := startCol >= runeLen
+	if wordDiffers || atStart || atEnd {
 		start = s
 	}
-	if s, e := findWordBoundaries(content, endCol); s != e || endCol == 0 || endCol >= len(content) {
+
+	s, e = findWordBoundaries(content, endCol)
+	wordDiffers = s != e
+	atStart = endCol == 0
+	atEnd = endCol >= runeLen
+	if wordDiffers || atStart || atEnd {
 		end = e
 	}
 

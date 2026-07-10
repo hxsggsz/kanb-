@@ -219,6 +219,34 @@ func TestWordStrategy_Select(t *testing.T) {
 			endCol:   5,
 			expected: Range{StartLine: 0, StartCol: 5, EndLine: 0, EndCol: 5},
 		},
+		{
+			name:     "multi-byte UTF-8 content expands to full word",
+			content:  "éééé",
+			startCol: 3,
+			endCol:   3,
+			expected: Range{StartLine: 0, StartCol: 0, EndLine: 0, EndCol: 3},
+		},
+		{
+			name:     "punctuation between words breaks selection",
+			content:  "foo.bar",
+			startCol: 3,
+			endCol:   3,
+			expected: Range{StartLine: 0, StartCol: 3, EndLine: 0, EndCol: 3},
+		},
+		{
+			name:     "mixed alphanumeric is single word",
+			content:  "foo123bar",
+			startCol: 4,
+			endCol:   4,
+			expected: Range{StartLine: 0, StartCol: 0, EndLine: 0, EndCol: 8},
+		},
+		{
+			name:     "reversed drag on multi-byte content",
+			content:  "éééé",
+			startCol: 3,
+			endCol:   1,
+			expected: Range{StartLine: 0, StartCol: 0, EndLine: 0, EndCol: 3},
+		},
 	}
 
 	for _, tt := range tests {
