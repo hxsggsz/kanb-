@@ -8,9 +8,11 @@ import (
 	"kanba/tui/diff"
 	"kanba/tui/models"
 	"kanba/tui/overlay"
+	"kanba/tui/selection"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 	"kanba/git"
 )
 
@@ -110,6 +112,13 @@ func (m *Model) renderContinuous(width int, vis int) string {
 			}
 
 			line = diff.RenderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel, theme)
+
+			if m.selection != nil {
+				sel := m.selection.CurrentSelection()
+				if sel != nil && !sel.Range.IsEmpty() {
+					line = m.applySelectionHighlight(line, gi, sel, colWidth, singlePanel)
+				}
+			}
 		}
 
 		if w := lipgloss.Width(line); w < width {
@@ -119,6 +128,58 @@ func (m *Model) renderContinuous(width int, vis int) string {
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+func (m *Model) applySelectionHighlight(line string, flatIdx int, sel *selection.Selection, colWidth int, singlePanel bool) string {
+	normalized := sel.Range.Normalized()
+
+	isBeforeSelection := flatIdx < normalized.StartLine
+	isAfterSelection := flatIdx > normalized.EndLine
+	if isBeforeSelection || isAfterSelection {
+		return line
+	}
+
+	startCol, endCol := 0, colWidth
+	isFirstLine := flatIdx == normalized.StartLine
+	isLastLine := flatIdx == normalized.EndLine
+	if isFirstLine {
+		startCol = normalized.StartCol
+	}
+	if isLastLine {
+		endCol = normalized.EndCol
+	}
+
+	if !singlePanel && sel.Panel == selection.PanelRight {
+		startCol += colWidth
+		endCol += colWidth
+	}
+
+	theme := m.CurrentTheme()
+	return highlightColumns(line, startCol, endCol, theme.SelectionBg, theme.SelectionFg)
+}
+
+func highlightColumns(line string, startCol, endCol int, bgColor, fgColor string) string {
+	if bgColor == "" || startCol >= endCol {
+		return line
+	}
+
+	visWidth := ansi.StringWidth(line)
+	if startCol >= visWidth {
+		return line
+	}
+	if endCol > visWidth {
+		endCol = visWidth
+	}
+
+	before := ansi.Cut(line, 0, startCol)
+	selected := ansi.Cut(line, startCol, endCol)
+	after := ansi.Cut(line, endCol, visWidth)
+
+	selStyle := lipgloss.NewStyle().Background(lipgloss.Color(bgColor))
+	if fgColor != "" {
+		selStyle = selStyle.Foreground(lipgloss.Color(fgColor))
+	}
+	return before + selStyle.Render(selected) + after
 }
 
 func (m *Model) renderFileHeader(fl diff.FlatLine, colWidth int, cursor bool) string {

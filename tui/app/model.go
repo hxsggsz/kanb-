@@ -3,6 +3,7 @@ package app
 import (
 	models "kanba/tui/models"
 	"kanba/tui/diff"
+	"kanba/tui/selection"
 	"kanba/tui/setting"
 
 	tea "charm.land/bubbletea/v2"
@@ -31,6 +32,8 @@ type Model struct {
 	highlighter  *diff.SyntaxHighlighter
 	themeModal   *models.Modal
 	helpActive   bool
+
+	selection *selection.Coordinator
 
 	activeMode  ViewMode
 	modeFactory *ModeFactory
@@ -65,6 +68,7 @@ func New(repoPath string, gitArgs []string) *Model {
 		scroller:    diff.NewScroller(),
 		highlighter: diff.NewSyntaxHighlighter(),
 		themeModal:  themeModal,
+		selection:   selection.NewCoordinator(nil),
 		modeFactory: factory,
 		activeMode:  factory.FromWidth(80),
 	}
