@@ -1,9 +1,12 @@
 package app
 
 import (
+	"log/slog"
+
 	"kanba/tui/diff"
-	"kanba/tui/widget"
+	"kanba/tui/selection"
 	"kanba/tui/setting"
+	"kanba/tui/widget"
 
 	"charm.land/lipgloss/v2"
 	tea "charm.land/bubbletea/v2"
@@ -35,6 +38,25 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleMouseClick(msg), nil
 	case tea.MouseWheelMsg:
 		return m.handleMouseWheel(msg), nil
+
+	case tea.MouseMotionMsg:
+		if m.selection != nil {
+			panel, line, col := m.mapMouseToContent(msg.X, msg.Y)
+			if panel >= 0 {
+				m.selection.HandleDrag(panel, line, col)
+			}
+		}
+
+	case tea.MouseReleaseMsg:
+		if m.selection != nil {
+			return m, m.selection.HandleRelease()
+		}
+
+	case selection.CopyMsg:
+		if err := selection.CopyToClipboard(msg.Content); err != nil {
+			slog.Warn("failed to copy to clipboard", "error", err)
+		}
+		return m, nil
 	}
 
 	return m, nil
@@ -154,19 +176,19 @@ func (m *Model) handleMouseWheel(msg tea.MouseWheelMsg) *Model {
 		return m
 	}
 
-		switch msg.Button {
-		case tea.MouseWheelUp:
-			if msg.Mod.Contains(tea.ModShift) {
-				m.scroller.ScrollLeft()
-			} else {
-				m.scroller.ScrollViewBy(-mouseScrollSpeed, m.TotalLines())
-			}
-		case tea.MouseWheelDown:
-			if msg.Mod.Contains(tea.ModShift) {
-				m.scroller.ScrollRight()
-			} else {
-				m.scroller.ScrollViewBy(mouseScrollSpeed, m.TotalLines())
-			}
+	switch msg.Button {
+	case tea.MouseWheelUp:
+		if msg.Mod.Contains(tea.ModShift) {
+			m.scroller.ScrollLeft()
+		} else {
+			m.scroller.ScrollViewBy(-mouseScrollSpeed, m.TotalLines())
+		}
+	case tea.MouseWheelDown:
+		if msg.Mod.Contains(tea.ModShift) {
+			m.scroller.ScrollRight()
+		} else {
+			m.scroller.ScrollViewBy(mouseScrollSpeed, m.TotalLines())
+		}
 	case tea.MouseWheelLeft:
 		m.scroller.ScrollLeft()
 	case tea.MouseWheelRight:
@@ -259,6 +281,13 @@ func (m *Model) handleMouseClick(msg tea.MouseClickMsg) *Model {
 		return m
 	}
 
+	panel, line, col := m.mapMouseToContent(msg.X, msg.Y)
+	isClickInContent := panel >= 0
+	hasSelection := m.selection != nil
+	if isClickInContent && hasSelection {
+		m.selection.HandleClick(panel, line, col)
+	}
+
 	start := m.scroller.Scroll()
 	vis := m.VisibleLines()
 	total := m.TotalLines()
@@ -288,4 +317,83 @@ func (m *Model) handleMouseClick(msg tea.MouseClickMsg) *Model {
 		m.scroller.MoveDown(len(m.flatLines))
 	}
 	return m
+}
+
+// mapMouseToContent maps mouse coordinates to panel, line, and column.
+// Returns panel (-1 if outside content area), flat line index, and content column.
+func (m *Model) mapMouseToContent(x, y int) (selection.PanelSide, int, int) {
+	if y < statusBarHeight {
+		return -1, 0, 0
+	}
+
+	contentY := y - statusBarHeight
+	sideWidth := widget.CalculateSideWidth(m.width)
+
+	isInsideSidebar := x < sideWidth
+	if isInsideSidebar {
+		return -1, 0, 0
+	}
+
+	// Determine panel
+	panelWidth := max(m.width-sideWidth-panelBorderWidth, panelMinWidth)
+	colWidth := (panelWidth - 3) / 2
+	contentX := x - sideWidth
+	isLeftPanel := contentX < colWidth
+
+	var panel selection.PanelSide
+	var panelLeft int
+	if isLeftPanel {
+		panel = selection.PanelLeft
+		panelLeft = 0
+	} else {
+		panel = selection.PanelRight
+		panelLeft = colWidth
+	}
+
+	// Map y to flat line index
+	start := m.scroller.Scroll()
+	vis := m.VisibleLines()
+	total := m.TotalLines()
+	end := min(start+vis, total)
+	visualRow := 0
+	targetLine := end - 1
+	for gi := start; gi < end; gi++ {
+		fl := m.flatLines[gi]
+		h := m.lineVisualHeight(fl)
+		clickFallsInLine := visualRow+h > contentY
+		if clickFallsInLine {
+			targetLine = gi
+			break
+		}
+		visualRow += h
+	}
+
+	// Skip headers
+	for targetLine < len(m.flatLines) && m.flatLines[targetLine].IsHeader {
+		targetLine++
+	}
+	isOutOfBounds := targetLine >= len(m.flatLines)
+	if isOutOfBounds {
+		return -1, 0, 0
+	}
+
+	// Map x to content column
+	prefixWidth := diff.LineNumColWidth + 3
+	contentCol := contentX - panelLeft - prefixWidth + m.scroller.HScroll()
+	if contentCol < 0 {
+		contentCol = 0
+	}
+
+	return panel, targetLine, contentCol
+}
+
+// lineVisualHeight returns the visual height of a flat line in rows.
+func (m *Model) lineVisualHeight(fl diff.FlatLine) int {
+	if !fl.IsHeader {
+		return 1
+	}
+	if fl.FileIdx > 0 {
+		return 4
+	}
+	return 3
 }
