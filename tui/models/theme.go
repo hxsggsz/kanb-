@@ -39,6 +39,9 @@ type Theme struct {
 
 	ErrorFg      string
 	LoadingFg    string
+
+	SelectionBg string
+	SelectionFg string
 }
 
 var Themes = map[string]Theme{
@@ -67,6 +70,8 @@ var Themes = map[string]Theme{
 		StatusBarFg: "#e0def4",
 		ErrorFg:      "#eb6f92",
 		LoadingFg:    "#c4a7e7",
+		SelectionBg:  "#403759",
+		SelectionFg:  "#e0def4",
 	},
 	"rose-pine-moon": {
 		Name:      "Rosé Pine Moon",
@@ -93,6 +98,8 @@ var Themes = map[string]Theme{
 		StatusBarFg: "#e0def4",
 		ErrorFg:      "#eb6f92",
 		LoadingFg:    "#c4a7e7",
+		SelectionBg:  "#403759",
+		SelectionFg:  "#e0def4",
 	},
 	"rose-pine-dawn": {
 		Name:      "Rosé Pine Dawn",
@@ -119,6 +126,8 @@ var Themes = map[string]Theme{
 		StatusBarFg: "#575279",
 		ErrorFg:      "#b4637a",
 		LoadingFg:    "#907aa9",
+		SelectionBg:  "#d4d4d4",
+		SelectionFg:  "#575279",
 	},
 }
 
