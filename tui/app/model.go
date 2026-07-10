@@ -81,3 +81,25 @@ func (m *Model) Init() tea.Cmd {
 func (m *Model) VisibleLines() int {
 	return m.height - statusBarHeight
 }
+
+func (m *Model) setupSelectionProvider() {
+	if m.selection == nil {
+		return
+	}
+	m.selection.SetLineContentProvider(func(flatLineIdx int) string {
+		if flatLineIdx < 0 || flatLineIdx >= len(m.flatLines) {
+			return ""
+		}
+		fl := m.flatLines[flatLineIdx]
+		if fl.IsHeader {
+			return ""
+		}
+		f := m.diffs[fl.FileIdx]
+		h := f.Hunks[fl.HunkIdx]
+		ln := h.Lines[fl.LineIdx]
+		if f.Status == "A" {
+			return ln.NewContent
+		}
+		return ln.OldContent
+	})
+}

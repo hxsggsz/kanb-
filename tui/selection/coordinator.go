@@ -1,6 +1,7 @@
 package selection
 
 import (
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -63,7 +64,7 @@ func (c *Coordinator) HandleClick(panel PanelSide, line, col int) tea.Cmd {
 		}
 
 		c.state = c.state.HandleDoubleClick(c, panel, line, col, boundary)
-		return nil
+		return c.copyIfSelected()
 	}
 
 	c.strategy = CharacterStrategy{}
@@ -78,9 +79,52 @@ func (c *Coordinator) HandleDrag(panel PanelSide, line, col int) {
 
 // HandleRelease processes mouse release.
 func (c *Coordinator) HandleRelease() tea.Cmd {
-	var cmd tea.Cmd
-	c.state, cmd = c.state.HandleRelease(c)
-	return cmd
+	c.state, _ = c.state.HandleRelease(c)
+	return c.copyIfSelected()
+}
+
+// copyIfSelected extracts selected text and returns a DelayedCopyCmd if valid.
+func (c *Coordinator) copyIfSelected() tea.Cmd {
+	sel := c.CurrentSelection()
+	if sel == nil || sel.Range.IsEmpty() {
+		return nil
+	}
+
+	if c.getLineContent == nil {
+		return nil
+	}
+
+	text := c.extractSelectedText(sel)
+	if text == "" {
+		return nil
+	}
+
+	return DelayedCopyCmd(text)
+}
+
+// extractSelectedText extracts the plain text from the current selection.
+func (c *Coordinator) extractSelectedText(sel *Selection) string {
+	normalized := sel.Range.Normalized()
+	var lines []string
+	for lineIdx := normalized.StartLine; lineIdx <= normalized.EndLine; lineIdx++ {
+		line := c.getLineContent(lineIdx)
+		startCol := 0
+		endCol := len([]rune(line))
+		if lineIdx == normalized.StartLine {
+			startCol = normalized.StartCol
+		}
+		if lineIdx == normalized.EndLine {
+			endCol = normalized.EndCol
+		}
+		if startCol < endCol && startCol < len([]rune(line)) {
+			runes := []rune(line)
+			if endCol > len(runes) {
+				endCol = len(runes)
+			}
+			lines = append(lines, string(runes[startCol:endCol]))
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 // Clear resets the selection.

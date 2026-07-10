@@ -94,5 +94,5 @@ func findWordBoundaries(line string, col int) (start, end int) {
 		end++
 	}
 
-	return start, end
+	return start, end + 1
 }

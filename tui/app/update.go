@@ -28,6 +28,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.diffs = msg.Diffs
 			m.flatLines = diff.BuildFlatLines(m.diffs)
 			m.fileStats = diff.ComputeFileStats(m.diffs)
+			m.setupSelectionProvider()
 		}
 		return m, nil
 

@@ -211,9 +211,9 @@ func TestSelectedState_HandleDrag(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected SelectedState, got %T", next)
 	}
-	// Selection should be unchanged
-	if sel.Selection.Range != (Range{StartLine: 0, StartCol: 0, EndLine: 5, EndCol: 10}) {
-		t.Errorf("Range = %+v, want unchanged {StartLine:0 StartCol:0 EndLine:5 EndCol:10}", sel.Selection.Range)
+	// Selection should extend to new position
+	if sel.Selection.Range != (Range{StartLine: 0, StartCol: 0, EndLine: 99, EndCol: 99}) {
+		t.Errorf("Range = %+v, want {StartLine:0 StartCol:0 EndLine:99 EndCol:99}", sel.Selection.Range)
 	}
 }
 

@@ -149,13 +149,19 @@ func (m *Model) applySelectionHighlight(line string, flatIdx int, sel *selection
 		endCol = normalized.EndCol
 	}
 
-	if !singlePanel && sel.Panel == selection.PanelRight {
-		startCol += colWidth
-		endCol += colWidth
+	prefixWidth := diff.LineNumColWidth + 3
+	if singlePanel {
+		startCol += prefixWidth
+		endCol += prefixWidth
+	} else if sel.Panel == selection.PanelRight {
+		startCol += colWidth + prefixWidth
+		endCol += colWidth + prefixWidth
+	} else {
+		startCol += prefixWidth
+		endCol += prefixWidth
 	}
 
-	theme := m.CurrentTheme()
-	return highlightColumns(line, startCol, endCol, theme.SelectionBg, theme.SelectionFg)
+	return highlightColumns(line, startCol, endCol, "FF00FF", "FFFFFF")
 }
 
 func highlightColumns(line string, startCol, endCol int, bgColor, fgColor string) string {

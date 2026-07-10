@@ -150,9 +150,9 @@ func TestDoubleClick_UsesWordStrategy(t *testing.T) {
 	if sel == nil {
 		t.Fatal("CurrentSelection returned nil after double-click")
 	}
-	// "world" starts at col 6, ends at col 10
-	if sel.Range.StartCol != 6 || sel.Range.EndCol != 10 {
-		t.Errorf("Range = %+v, want StartCol=6 EndCol=10 (word 'world')", sel.Range)
+	// "world" starts at col 6, ends at col 11 (exclusive)
+	if sel.Range.StartCol != 6 || sel.Range.EndCol != 11 {
+		t.Errorf("Range = %+v, want StartCol=6 EndCol=11 (word 'world')", sel.Range)
 	}
 }
 
