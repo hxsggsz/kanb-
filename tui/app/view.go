@@ -2,13 +2,13 @@ package app
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"kanba/tui/diff"
 	"kanba/tui/models"
 	"kanba/tui/overlay"
-	"kanba/tui/selection"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -91,35 +91,17 @@ func (m *Model) renderContinuous(width int, vis int) string {
 
 	padStyle := lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg))
 
+	selHighlighter := m.buildSelectionHighlighter(width)
+
 	var lines []string
+	var selectedTextParts []string
+
 	for gi := start; gi < end; gi++ {
 		fl := m.flatLines[gi]
 		cursor := gi == cursorLine
 
-		var line string
-		if fl.IsHeader {
-			line = m.renderFileHeader(fl, width, cursor)
-		} else {
-			f := m.diffs[fl.FileIdx]
-			h := f.Hunks[fl.HunkIdx]
-			ln := h.Lines[fl.LineIdx]
-			fmtr := diff.DefaultFormatters[ln.Kind]
-
-			singlePanel := f.Status == "A"
-			colWidth := width
-			if !singlePanel {
-				colWidth = width / 2
-			}
-
-			line = diff.RenderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel, theme)
-
-			if m.selection != nil {
-				sel := m.selection.CurrentSelection()
-				if sel != nil && !sel.Range.IsEmpty() {
-					line = m.applySelectionHighlight(line, gi, sel, colWidth, singlePanel)
-				}
-			}
-		}
+		line := m.renderLine(fl, width, cursor, hScroll, selHighlighter, gi, theme)
+		selectedTextParts = m.accumulateSelectedText(selectedTextParts, line, gi, selHighlighter, theme)
 
 		if w := lipgloss.Width(line); w < width {
 			line += padStyle.Render(strings.Repeat(" ", width-w))
@@ -127,44 +109,71 @@ func (m *Model) renderContinuous(width int, vis int) string {
 		lines = append(lines, line)
 	}
 
+	m.selectedText = strings.Join(selectedTextParts, "\n")
 	return strings.Join(lines, "\n")
 }
 
-func (m *Model) applySelectionHighlight(line string, flatIdx int, sel *selection.Selection, colWidth int, singlePanel bool) string {
-	normalized := sel.Range.Normalized()
+func (m *Model) buildSelectionHighlighter(width int) *SelectionHighlighter {
+	if m.selection == nil {
+		return nil
+	}
 
-	isBeforeSelection := flatIdx < normalized.StartLine
-	isAfterSelection := flatIdx > normalized.EndLine
-	if isBeforeSelection || isAfterSelection {
+	sel := m.selection.CurrentSelection()
+	if sel == nil {
+		return nil
+	}
+	if sel.Range.IsEmpty() {
+		return nil
+	}
+
+	return NewSelectionHighlighter(sel, width/2)
+}
+
+func (m *Model) renderLine(fl diff.FlatLine, width int, cursor bool, hScroll int, selHighlighter *SelectionHighlighter, gi int, theme models.Theme) string {
+	if fl.IsHeader {
+		return m.renderFileHeader(fl, width, cursor)
+	}
+
+	f := m.diffs[fl.FileIdx]
+	h := f.Hunks[fl.HunkIdx]
+	ln := h.Lines[fl.LineIdx]
+	fmtr := diff.DefaultFormatters[ln.Kind]
+
+	singlePanel := f.Status == "A"
+	colWidth := width
+	if !singlePanel {
+		colWidth = width / 2
+	}
+
+	line := diff.RenderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel, theme)
+
+	if selHighlighter == nil {
 		return line
 	}
 
-	startCol, endCol := 0, colWidth
-	isFirstLine := flatIdx == normalized.StartLine
-	isLastLine := flatIdx == normalized.EndLine
-	if isFirstLine {
-		startCol = normalized.StartCol
-	}
-	if isLastLine {
-		endCol = normalized.EndCol
-	}
-
-	prefixWidth := diff.LineNumColWidth + 3
-	if singlePanel {
-		startCol += prefixWidth
-		endCol += prefixWidth
-	} else if sel.Panel == selection.PanelRight {
-		startCol += colWidth + prefixWidth
-		endCol += colWidth + prefixWidth
-	} else {
-		startCol += prefixWidth
-		endCol += prefixWidth
-	}
-
-	return highlightColumns(line, startCol, endCol, "FF00FF", "FFFFFF")
+	highlighted, _ := selHighlighter.ProcessLine(line, gi, theme)
+	return highlighted
 }
 
-func highlightColumns(line string, startCol, endCol int, bgColor, fgColor string) string {
+func (m *Model) accumulateSelectedText(parts []string, line string, gi int, selHighlighter *SelectionHighlighter, theme models.Theme) []string {
+	if selHighlighter == nil {
+		return parts
+	}
+
+	_, plainText := selHighlighter.ProcessLine(line, gi, theme)
+	if plainText == "" {
+		return parts
+	}
+
+	return append(parts, plainText)
+}
+
+var (
+	sgrRegex   = regexp.MustCompile(`\x1b\[([\d;]*)m`)
+	resetRegex = regexp.MustCompile(`\x1b\[m`)
+)
+
+func highlightColumns(line string, startCol, endCol int, bgColor string) string {
 	if bgColor == "" || startCol >= endCol {
 		return line
 	}
@@ -181,11 +190,37 @@ func highlightColumns(line string, startCol, endCol int, bgColor, fgColor string
 	selected := ansi.Cut(line, startCol, endCol)
 	after := ansi.Cut(line, endCol, visWidth)
 
+	selected = stripBackgrounds(selected)
+	selected = resetRegex.ReplaceAllString(selected, "")
 	selStyle := lipgloss.NewStyle().Background(lipgloss.Color(bgColor))
-	if fgColor != "" {
-		selStyle = selStyle.Foreground(lipgloss.Color(fgColor))
-	}
 	return before + selStyle.Render(selected) + after
+}
+
+func stripBackgrounds(s string) string {
+	return sgrRegex.ReplaceAllStringFunc(s, func(match string) string {
+		params := match[2 : len(match)-1]
+		parts := strings.Split(params, ";")
+		var out []string
+		i := 0
+		for i < len(parts) {
+			if parts[i] == "48" && i+1 < len(parts) {
+				if parts[i+1] == "5" && i+2 < len(parts) {
+					i += 3
+					continue
+				}
+				if parts[i+1] == "2" && i+4 < len(parts) {
+					i += 5
+					continue
+				}
+			}
+			out = append(out, parts[i])
+			i++
+		}
+		if len(out) == 0 {
+			return "\x1b[m"
+		}
+		return "\x1b[" + strings.Join(out, ";") + "m"
+	})
 }
 
 func (m *Model) renderFileHeader(fl diff.FlatLine, colWidth int, cursor bool) string {

@@ -33,7 +33,8 @@ type Model struct {
 	themeModal   *models.Modal
 	helpActive   bool
 
-	selection *selection.Coordinator
+	selection    *selection.Coordinator
+	selectedText string
 
 	activeMode  ViewMode
 	modeFactory *ModeFactory
@@ -86,7 +87,7 @@ func (m *Model) setupSelectionProvider() {
 	if m.selection == nil {
 		return
 	}
-	m.selection.SetLineContentProvider(func(flatLineIdx int) string {
+	m.selection.SetLineContentProvider(func(flatLineIdx int, panel selection.PanelSide) string {
 		if flatLineIdx < 0 || flatLineIdx >= len(m.flatLines) {
 			return ""
 		}
@@ -98,6 +99,9 @@ func (m *Model) setupSelectionProvider() {
 		h := f.Hunks[fl.HunkIdx]
 		ln := h.Lines[fl.LineIdx]
 		if f.Status == "A" {
+			return ln.NewContent
+		}
+		if panel == selection.PanelRight {
 			return ln.NewContent
 		}
 		return ln.OldContent

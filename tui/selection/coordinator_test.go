@@ -75,8 +75,8 @@ func TestHandleRelease_SelectingToSelected(t *testing.T) {
 	c.HandleDrag(PanelLeft, 3, 5)
 	cmd := c.HandleRelease()
 
-	if cmd != nil {
-		t.Errorf("expected nil cmd, got %v", cmd)
+	if cmd == nil {
+		t.Error("expected non-nil cmd for valid selection")
 	}
 	if _, ok := c.state.(SelectedState); !ok {
 		t.Errorf("state = %T, want SelectedState", c.state)
@@ -115,7 +115,7 @@ func TestHandleClick_SelectedStartsNewSelection(t *testing.T) {
 
 func TestDoubleClick_Detection(t *testing.T) {
 	c := NewCoordinator(nil)
-	c.getLineContent = func(line int) string {
+	c.getLineContent = func(line int, panel PanelSide) string {
 		return "hello world"
 	}
 
@@ -132,7 +132,7 @@ func TestDoubleClick_Detection(t *testing.T) {
 
 func TestDoubleClick_UsesWordStrategy(t *testing.T) {
 	c := NewCoordinator(nil)
-	c.getLineContent = func(line int) string {
+	c.getLineContent = func(line int, panel PanelSide) string {
 		return "hello world"
 	}
 
@@ -325,7 +325,7 @@ func TestCoordinatorFullLifecycle(t *testing.T) {
 
 func TestDoubleClick_WindowBoundaryFarApart(t *testing.T) {
 	c := NewCoordinator(nil)
-	c.getLineContent = func(line int) string { return "test" }
+	c.getLineContent = func(line int, panel PanelSide) string { return "test" }
 
 	c.HandleClick(PanelLeft, 0, 0)
 

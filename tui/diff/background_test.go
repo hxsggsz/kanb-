@@ -29,8 +29,8 @@ func TestRenderStyledLineTruncatesToWidth(t *testing.T) {
 
 func TestRenderStyledLineCursorHighlight(t *testing.T) {
 	result := renderStyledLine("", "hello", 10, git.KindContext, false, true, nil, "", models.GetTheme("rose-pine"))
-	if !strings.Contains(result, "48;2;56;53;73") {
-		t.Fatalf("expected cursor background blended over panel, got: %q", result)
+	if !strings.Contains(result, "48;2;58;55;76") {
+		t.Fatalf("expected cursor background on prefix, got: %q", result)
 	}
 	if lipgloss.Width(result) != 10 {
 		t.Fatalf("expected visible width 10, got %d", lipgloss.Width(result))

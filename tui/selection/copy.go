@@ -9,19 +9,14 @@ import (
 
 const copyDelay = 400 * time.Millisecond
 
-// CopyMsg is sent when text should be copied
-type CopyMsg struct {
-	Content string
-}
+type CopyMsg struct{}
 
-// DelayedCopyCmd returns a command that schedules a copy after the threshold
-func DelayedCopyCmd(content string) tea.Cmd {
+func DelayedCopyCmd() tea.Cmd {
 	return tea.Tick(copyDelay, func(t time.Time) tea.Msg {
-		return CopyMsg{Content: content}
+		return CopyMsg{}
 	})
 }
 
-// CopyToClipboard writes text to the system clipboard
 func CopyToClipboard(content string) error {
 	return clipboard.WriteAll(content)
 }

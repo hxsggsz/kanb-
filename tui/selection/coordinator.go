@@ -1,7 +1,6 @@
 package selection
 
 import (
-	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -17,7 +16,7 @@ type Coordinator struct {
 	lastY      int
 
 	onCopy        func(string) tea.Cmd
-	getLineContent func(line int) string
+	getLineContent func(line int, panel PanelSide) string
 }
 
 // NewCoordinator creates a new selection coordinator.
@@ -31,7 +30,7 @@ func NewCoordinator(onCopy func(string) tea.Cmd) *Coordinator {
 
 // SetLineContentProvider sets the callback used to retrieve line content
 // for word boundary detection during double-click.
-func (c *Coordinator) SetLineContentProvider(fn func(line int) string) {
+func (c *Coordinator) SetLineContentProvider(fn func(line int, panel PanelSide) string) {
 	c.getLineContent = fn
 }
 
@@ -56,7 +55,7 @@ func (c *Coordinator) HandleClick(panel PanelSide, line, col int) tea.Cmd {
 
 		var boundary WordBoundary
 		if c.getLineContent != nil {
-			content := c.getLineContent(line)
+			content := c.getLineContent(line, panel)
 			start, end := findWordBoundaries(content, col)
 			boundary = WordBoundary{Start: start, End: end}
 		} else {
@@ -83,48 +82,12 @@ func (c *Coordinator) HandleRelease() tea.Cmd {
 	return c.copyIfSelected()
 }
 
-// copyIfSelected extracts selected text and returns a DelayedCopyCmd if valid.
 func (c *Coordinator) copyIfSelected() tea.Cmd {
 	sel := c.CurrentSelection()
 	if sel == nil || sel.Range.IsEmpty() {
 		return nil
 	}
-
-	if c.getLineContent == nil {
-		return nil
-	}
-
-	text := c.extractSelectedText(sel)
-	if text == "" {
-		return nil
-	}
-
-	return DelayedCopyCmd(text)
-}
-
-// extractSelectedText extracts the plain text from the current selection.
-func (c *Coordinator) extractSelectedText(sel *Selection) string {
-	normalized := sel.Range.Normalized()
-	var lines []string
-	for lineIdx := normalized.StartLine; lineIdx <= normalized.EndLine; lineIdx++ {
-		line := c.getLineContent(lineIdx)
-		startCol := 0
-		endCol := len([]rune(line))
-		if lineIdx == normalized.StartLine {
-			startCol = normalized.StartCol
-		}
-		if lineIdx == normalized.EndLine {
-			endCol = normalized.EndCol
-		}
-		if startCol < endCol && startCol < len([]rune(line)) {
-			runes := []rune(line)
-			if endCol > len(runes) {
-				endCol = len(runes)
-			}
-			lines = append(lines, string(runes[startCol:endCol]))
-		}
-	}
-	return strings.Join(lines, "\n")
+	return DelayedCopyCmd()
 }
 
 // Clear resets the selection.

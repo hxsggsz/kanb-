@@ -54,9 +54,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case selection.CopyMsg:
-		if err := selection.CopyToClipboard(msg.Content); err != nil {
+		if m.selectedText == "" {
+			return m, nil
+		}
+		if err := selection.CopyToClipboard(m.selectedText); err != nil {
 			slog.Warn("failed to copy to clipboard", "error", err)
 		}
+		m.selectedText = ""
 		return m, nil
 	}
 
@@ -337,7 +341,7 @@ func (m *Model) mapMouseToContent(x, y int) (selection.PanelSide, int, int) {
 
 	// Determine panel
 	panelWidth := max(m.width-sideWidth-panelBorderWidth, panelMinWidth)
-	colWidth := (panelWidth - 3) / 2
+	colWidth := panelWidth / 2
 	contentX := x - sideWidth
 	isLeftPanel := contentX < colWidth
 

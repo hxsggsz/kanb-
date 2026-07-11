@@ -118,13 +118,6 @@ func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLe
 		numBg = theme.LineNumberBg
 	}
 
-	baseStyle := lipgloss.NewStyle()
-	if cursor {
-		baseStyle = baseStyle.Background(lipgloss.Color(theme.CursorBgFor(bgColor)))
-	} else {
-		baseStyle = baseStyle.Background(lipgloss.Color(bgColor))
-	}
-
 	numStyle := lipgloss.NewStyle()
 	if fg := theme.LineNumFg(kind, isLeft); fg != "" {
 		numStyle = numStyle.Foreground(lipgloss.Color(fg))
@@ -139,9 +132,8 @@ func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLe
 
 	var contentRendered string
 	if sh != nil {
+		baseStyle := lipgloss.NewStyle().Background(lipgloss.Color(bgColor))
 		contentRendered = sh.HighlightWithStyle(content, filePath, baseStyle, theme)
-	} else if cursor || bgColor != "" {
-		contentRendered = baseStyle.Render(content)
 	} else {
 		contentRendered = content
 	}
@@ -153,7 +145,7 @@ func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLe
 		vis = width
 	}
 	if vis < width {
-		padStyle := baseStyle
+		padStyle := lipgloss.NewStyle().Background(lipgloss.Color(bgColor))
 		styled += padStyle.Render(strings.Repeat(" ", width-vis))
 	}
 
