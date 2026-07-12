@@ -1,14 +1,12 @@
 package diff
 
 const (
-	scrollMargin       = 8
-	hScrollStep        = 8
-	hScrollFastStep    = 32
+	hScrollStep     = 8
+	hScrollFastStep = 32
 )
 
 type Scroller struct {
 	scroll     int
-	cursorLine int
 	hScroll    int
 	scrollLock bool
 }
@@ -17,28 +15,35 @@ func NewScroller() *Scroller {
 	return &Scroller{}
 }
 
-func (s *Scroller) CursorLine() int { return s.cursorLine }
-func (s *Scroller) Scroll() int     { return s.scroll }
-func (s *Scroller) HScroll() int    { return s.hScroll }
+func (s *Scroller) Scroll() int  { return s.scroll }
+func (s *Scroller) HScroll() int { return s.hScroll }
 
-func (s *Scroller) MoveDown(total int) {
-	if s.cursorLine < total-1 {
-		s.cursorLine++
+func (s *Scroller) MoveDown(total int, vis int) {
+	maxScroll := total - vis
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	if s.scroll < maxScroll {
+		s.scroll++
 	}
 }
 
 func (s *Scroller) MoveUp() {
-	if s.cursorLine > 0 {
-		s.cursorLine--
+	if s.scroll > 0 {
+		s.scroll--
 	}
 }
 
 func (s *Scroller) GoToTop() {
-	s.cursorLine = 0
+	s.scroll = 0
 }
 
-func (s *Scroller) GoToBottom(total int) {
-	s.cursorLine = total - 1
+func (s *Scroller) GoToBottom(total int, vis int) {
+	maxScroll := total - vis
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	s.scroll = maxScroll
 }
 
 func (s *Scroller) ScrollLeft() {
@@ -77,45 +82,49 @@ func (s *Scroller) ClampHScroll(maxScroll int) {
 	}
 }
 
-func (s *Scroller) ScrollViewBy(delta int, total int) {
+func (s *Scroller) ScrollViewBy(delta int, total int, vis int) {
 	if total <= 0 {
 		return
 	}
-	s.scroll = max(0, min(s.scroll+delta, total-1))
+	maxScroll := total - vis
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	s.scroll = max(0, min(s.scroll+delta, maxScroll))
+	s.scrollLock = true
+}
+
+func (s *Scroller) SetScroll(pos, total, vis int) {
+	if pos < 0 {
+		pos = 0
+	}
+	maxScroll := total - vis
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	if pos > maxScroll {
+		pos = maxScroll
+	}
+	s.scroll = pos
 	s.scrollLock = true
 }
 
 func (s *Scroller) UpdateScroll(total int, vis int) {
 	if s.scrollLock {
 		s.scrollLock = false
-		if s.cursorLine >= total {
-			s.cursorLine = max(total-1, 0)
-		}
-		return
 	}
 	if total == 0 || vis <= 0 {
 		s.scroll = 0
 		return
 	}
-	if s.cursorLine >= total {
-		s.cursorLine = total - 1
-	}
-	if vis >= total {
-		s.scroll = 0
-		return
-	}
-	sm := scrollMargin
-	if sm > vis/2 {
-		sm = max(1, vis/2)
-	}
 	maxScroll := total - vis
-	if s.cursorLine < s.scroll+sm {
-		s.scroll = max(0, s.cursorLine-sm)
-	}
-	if s.cursorLine >= s.scroll+vis-sm {
-		s.scroll = min(s.cursorLine-vis+sm+1, maxScroll)
+	if maxScroll < 0 {
+		maxScroll = 0
 	}
 	if s.scroll > maxScroll {
 		s.scroll = maxScroll
+	}
+	if s.scroll < 0 {
+		s.scroll = 0
 	}
 }

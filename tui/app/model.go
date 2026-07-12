@@ -14,7 +14,6 @@ const (
 	statusBarHeight  = 4
 	panelBorderWidth = 0
 	panelMinWidth    = 10
-	mouseScrollSpeed = 3
 )
 
 type Model struct {
@@ -36,8 +35,9 @@ type Model struct {
 	selection    *selection.Coordinator
 	selectedText string
 
-	activeMode  ViewMode
-	modeFactory *ModeFactory
+	activeMode   ViewMode
+	modeFactory  *ModeFactory
+	visibleLines int
 }
 
 func (m *Model) TotalLines() int {

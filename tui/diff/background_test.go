@@ -11,7 +11,7 @@ import (
 )
 
 func TestRenderStyledLineAddsBackground(t *testing.T) {
-	result := renderStyledLine("", "hello", 20, git.KindAdded, false, false, nil, "", models.GetTheme("rose-pine"))
+	result := renderStyledLine("", "hello", 20, git.KindAdded, false, nil, "", models.GetTheme("rose-pine"))
 	if !strings.Contains(result, "48;2;51;60;72") {
 		t.Fatalf("expected added background, got: %q", result)
 	}
@@ -21,19 +21,9 @@ func TestRenderStyledLineAddsBackground(t *testing.T) {
 }
 
 func TestRenderStyledLineTruncatesToWidth(t *testing.T) {
-	result := renderStyledLine("", "hello world", 5, git.KindContext, false, false, nil, "", models.GetTheme("rose-pine"))
+	result := renderStyledLine("", "hello world", 5, git.KindContext, false, nil, "", models.GetTheme("rose-pine"))
 	if lipgloss.Width(result) != 5 {
 		t.Fatalf("expected visible width 5 (truncated), got %d", lipgloss.Width(result))
-	}
-}
-
-func TestRenderStyledLineCursorHighlight(t *testing.T) {
-	result := renderStyledLine("", "hello", 10, git.KindContext, false, true, nil, "", models.GetTheme("rose-pine"))
-	if !strings.Contains(result, "48;2;58;55;76") {
-		t.Fatalf("expected cursor background on prefix, got: %q", result)
-	}
-	if lipgloss.Width(result) != 10 {
-		t.Fatalf("expected visible width 10, got %d", lipgloss.Width(result))
 	}
 }
 

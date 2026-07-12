@@ -15,10 +15,7 @@ import (
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		m.activeMode = m.modeFactory.FromWidth(msg.Width)
-		return m, nil
+		return m.handleWindowSizeMsg(msg)
 
 	case setting.DiffMsg:
 		m.loading = false
@@ -30,6 +27,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.fileStats = diff.ComputeFileStats(m.diffs)
 			m.setupSelectionProvider()
 		}
+		m.visibleLines = m.height - 4
 		return m, nil
 
 	case tea.KeyPressMsg:
@@ -38,7 +36,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseClickMsg:
 		return m.handleMouseClick(msg), nil
 	case tea.MouseWheelMsg:
-		return m.handleMouseWheel(msg), nil
+		return m.handleMouseWheel(msg)
 
 	case tea.MouseMotionMsg:
 		if m.selection != nil {
@@ -64,6 +62,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	return m, nil
+}
+
+func (m *Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+	m.visibleLines = m.height - 4
+	m.activeMode = m.modeFactory.FromWidth(msg.Width)
+	m.scroller.UpdateScroll(m.TotalLines(), m.visibleLines)
 	return m, nil
 }
 
@@ -105,27 +112,15 @@ func (m *Model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case setting.KeyUp, setting.KeyUpAlt:
 		m.scroller.MoveUp()
-		for m.scroller.CursorLine() > 0 && m.flatLines[m.scroller.CursorLine()].IsHeader {
-			m.scroller.MoveUp()
-		}
 
 	case setting.KeyDown, setting.KeyDownAlt:
-		m.scroller.MoveDown(m.TotalLines())
-		for m.scroller.CursorLine() < m.TotalLines()-1 && m.flatLines[m.scroller.CursorLine()].IsHeader {
-			m.scroller.MoveDown(m.TotalLines())
-		}
+		m.scroller.MoveDown(m.TotalLines(), m.visibleLines)
 
 	case setting.KeyTop:
 		m.scroller.GoToTop()
-		for m.scroller.CursorLine() < m.TotalLines()-1 && m.flatLines[m.scroller.CursorLine()].IsHeader {
-			m.scroller.MoveDown(m.TotalLines())
-		}
 
 	case setting.KeyBottom:
-		m.scroller.GoToBottom(m.TotalLines())
-		for m.scroller.CursorLine() > 0 && m.flatLines[m.scroller.CursorLine()].IsHeader {
-			m.scroller.MoveUp()
-		}
+		m.scroller.GoToBottom(m.TotalLines(), m.visibleLines)
 
 	case setting.KeyLeft, setting.KeyLeftAlt:
 		m.scroller.ScrollLeft()
@@ -167,9 +162,30 @@ func (m *Model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *Model) handleMouseWheel(msg tea.MouseWheelMsg) *Model {
+type scrollUpMsg struct{}
+type scrollDownMsg struct{}
+
+func (m *Model) scrollUp(lines int) tea.Cmd {
+	return func() tea.Msg {
+		for i := 0; i < lines; i++ {
+			m.scroller.MoveUp()
+		}
+		return scrollUpMsg{}
+	}
+}
+
+func (m *Model) scrollDown(lines int) tea.Cmd {
+	return func() tea.Msg {
+		for i := 0; i < lines; i++ {
+			m.scroller.MoveDown(m.TotalLines(), m.visibleLines)
+		}
+		return scrollDownMsg{}
+	}
+}
+
+func (m *Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
 	if len(m.flatLines) == 0 {
-		return m
+		return m, nil
 	}
 	if m.themeModal.Active {
 		switch msg.Button {
@@ -178,28 +194,30 @@ func (m *Model) handleMouseWheel(msg tea.MouseWheelMsg) *Model {
 		case tea.MouseWheelDown:
 			m.themeModal.MoveDown()
 		}
-		return m
+		return m, nil
 	}
 
 	switch msg.Button {
 	case tea.MouseWheelUp:
-		if msg.Mod.Contains(tea.ModShift) {
-			m.scroller.ScrollLeft()
-		} else {
-			m.scroller.ScrollViewBy(-mouseScrollSpeed, m.TotalLines())
+		lines := 1
+		if msg.Mod.Contains(tea.ModAlt) {
+			lines = 5
 		}
+		return m, m.scrollUp(lines)
 	case tea.MouseWheelDown:
-		if msg.Mod.Contains(tea.ModShift) {
-			m.scroller.ScrollRight()
-		} else {
-			m.scroller.ScrollViewBy(mouseScrollSpeed, m.TotalLines())
+		lines := 1
+		if msg.Mod.Contains(tea.ModAlt) {
+			lines = 5
 		}
+		return m, m.scrollDown(lines)
 	case tea.MouseWheelLeft:
-		m.scroller.ScrollLeft()
+		m.scroller.ScrollLeftFast()
+		return m, nil
 	case tea.MouseWheelRight:
-		m.scroller.ScrollRight()
+		m.scroller.ScrollRightFast()
+		return m, nil
 	}
-	return m
+	return m, nil
 }
 
 func (m *Model) handleThemeModalKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
@@ -270,16 +288,13 @@ func (m *Model) handleMouseClick(msg tea.MouseClickMsg) *Model {
 	sideWidth := widget.CalculateSideWidth(m.width)
 
 	if x < sideWidth {
-		fileIdx, ok := widget.LookupSidebarEntry(m.diffs, m.flatLines[m.scroller.CursorLine()].FileIdx, m.height, contentY)
+		fileIdx, ok := widget.LookupSidebarEntry(m.diffs, m.flatLines[m.scroller.Scroll()].FileIdx, m.height, contentY)
 		if !ok {
 			return m
 		}
 		for i, fl := range m.flatLines {
 			if fl.FileIdx == fileIdx && !fl.IsHeader {
-				m.scroller.GoToTop()
-				for m.scroller.CursorLine() < i {
-					m.scroller.MoveDown(len(m.flatLines))
-				}
+				m.scroller.SetScroll(i, len(m.flatLines), m.visibleLines)
 				return m
 			}
 		}
@@ -291,36 +306,18 @@ func (m *Model) handleMouseClick(msg tea.MouseClickMsg) *Model {
 	hasSelection := m.selection != nil
 	if isClickInContent && hasSelection {
 		m.selection.HandleClick(panel, line, col)
+		return m
 	}
 
-	start := m.scroller.Scroll()
-	vis := m.VisibleLines()
-	total := m.TotalLines()
-	end := min(start+vis, total)
-	visualRow := 0
-	targetLine := end - 1
-	for gi := start; gi < end; gi++ {
-		fl := m.flatLines[gi]
-		h := 1
-		if fl.IsHeader {
-			h = 3
-			if fl.FileIdx > 0 {
-				h = 4
-			}
-		}
-		if visualRow+h > contentY {
-			targetLine = gi
-			break
-		}
-		visualRow += h
+	if m.visibleLines <= 0 {
+		return m
 	}
-	m.scroller.GoToTop()
-	for m.scroller.CursorLine() < targetLine {
-		m.scroller.MoveDown(len(m.flatLines))
+	maxScroll := m.TotalLines() - m.visibleLines
+	if maxScroll < 0 {
+		maxScroll = 0
 	}
-	for m.scroller.CursorLine() < len(m.flatLines)-1 && m.flatLines[m.scroller.CursorLine()].IsHeader {
-		m.scroller.MoveDown(len(m.flatLines))
-	}
+	targetScroll := int(float64(contentY) / float64(m.visibleLines) * float64(maxScroll))
+	m.scroller.SetScroll(targetScroll, m.TotalLines(), m.visibleLines)
 	return m
 }
 

@@ -23,9 +23,13 @@ func (m *DiffOnlyMode) Render(model *Model) string {
 	panelWidth := max(model.width-panelBorderWidth, panelMinWidth)
 	content := model.renderContinuous(panelWidth, contentVis)
 
-	cursorFileIdx := model.flatLines[model.scroller.CursorLine()].FileIdx
+	scroll := model.scroller.Scroll()
+	if scroll >= len(model.flatLines) {
+		scroll = max(0, len(model.flatLines)-1)
+	}
+	cursorFileIdx := model.flatLines[scroll].FileIdx
 	f := model.diffs[cursorFileIdx]
-	statusBar := widget.NewStatusBar(f.NewPath, cursorFileIdx, len(model.diffs), model.scroller.CursorLine(), len(model.flatLines), model.width, theme)
+	statusBar := widget.NewStatusBar(f.NewPath, cursorFileIdx, len(model.diffs), model.width, theme)
 
 	result := fmt.Sprintf("%s\n%s", statusBar.Render(), content)
 	result = lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg)).Render(result)

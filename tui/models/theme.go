@@ -1,10 +1,8 @@
 package models
 
 import (
-	"fmt"
 	"kanba/git"
 	"sort"
-	"strings"
 )
 
 type Theme struct {
@@ -175,35 +173,4 @@ func (t Theme) LineNumFg(kind git.LineKind, isLeft bool) string {
 	}
 }
 
-func (t Theme) CursorBgFor(bg string) string {
-	if bg == "" {
-		return t.CursorBg
-	}
-	return blendHex(t.CursorBg, bg, 0.75)
-}
 
-func blendHex(fg, bg string, ratio float64) string {
-	fr, fgC, fb := parseHex(fg)
-	br, bgC, bb := parseHex(bg)
-	r := int(float64(br) + (float64(fr)-float64(br))*ratio + 0.5)
-	g := int(float64(bgC) + (float64(fgC)-float64(bgC))*ratio + 0.5)
-	b := int(float64(bb) + (float64(fb)-float64(bb))*ratio + 0.5)
-	return fmt.Sprintf("#%02x%02x%02x", r, g, b)
-}
-
-func parseHex(hex string) (r, g, b int) {
-	hex = strings.TrimPrefix(hex, "#")
-	if len(hex) == 3 {
-		hex = string([]byte{hex[0], hex[0], hex[1], hex[1], hex[2], hex[2]})
-	}
-	r = intHex(hex[0:2])
-	g = intHex(hex[2:4])
-	b = intHex(hex[4:6])
-	return
-}
-
-func intHex(s string) int {
-	var v int
-	fmt.Sscanf(s, "%x", &v)
-	return v
-}

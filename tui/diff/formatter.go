@@ -21,8 +21,8 @@ type LineFormatter interface {
 	RightContent(ln git.AlignedLine) string
 	LeftPrefix(ln git.AlignedLine) string
 	RightPrefix(ln git.AlignedLine) string
-	LeftStyle(ln git.AlignedLine, cursor bool) lipgloss.Style
-	RightStyle(ln git.AlignedLine, cursor bool) lipgloss.Style
+	LeftStyle(ln git.AlignedLine) lipgloss.Style
+	RightStyle(ln git.AlignedLine) lipgloss.Style
 }
 
 type contextFormatter struct{}
@@ -31,8 +31,8 @@ func (contextFormatter) LeftContent(ln git.AlignedLine) string    { return ln.Ol
 func (contextFormatter) RightContent(ln git.AlignedLine) string   { return ln.NewContent }
 func (contextFormatter) LeftPrefix(git.AlignedLine) string        { return " " }
 func (contextFormatter) RightPrefix(git.AlignedLine) string       { return " " }
-func (contextFormatter) LeftStyle(git.AlignedLine, bool) lipgloss.Style  { return emptyStyle }
-func (contextFormatter) RightStyle(git.AlignedLine, bool) lipgloss.Style { return emptyStyle }
+func (contextFormatter) LeftStyle(git.AlignedLine) lipgloss.Style  { return emptyStyle }
+func (contextFormatter) RightStyle(git.AlignedLine) lipgloss.Style { return emptyStyle }
 
 type addedFormatter struct{}
 
@@ -40,8 +40,8 @@ func (addedFormatter) LeftContent(git.AlignedLine) string          { return "" }
 func (addedFormatter) RightContent(ln git.AlignedLine) string      { return ln.NewContent }
 func (addedFormatter) LeftPrefix(git.AlignedLine) string           { return " " }
 func (addedFormatter) RightPrefix(git.AlignedLine) string          { return "+" }
-func (addedFormatter) LeftStyle(git.AlignedLine, bool) lipgloss.Style  { return emptyStyle }
-func (addedFormatter) RightStyle(git.AlignedLine, bool) lipgloss.Style { return emptyStyle }
+func (addedFormatter) LeftStyle(git.AlignedLine) lipgloss.Style  { return emptyStyle }
+func (addedFormatter) RightStyle(git.AlignedLine) lipgloss.Style { return emptyStyle }
 
 type deletedFormatter struct{}
 
@@ -49,8 +49,8 @@ func (deletedFormatter) LeftContent(ln git.AlignedLine) string     { return ln.O
 func (deletedFormatter) RightContent(git.AlignedLine) string       { return "" }
 func (deletedFormatter) LeftPrefix(git.AlignedLine) string         { return "-" }
 func (deletedFormatter) RightPrefix(git.AlignedLine) string        { return " " }
-func (deletedFormatter) LeftStyle(git.AlignedLine, bool) lipgloss.Style  { return emptyStyle }
-func (deletedFormatter) RightStyle(git.AlignedLine, bool) lipgloss.Style { return emptyStyle }
+func (deletedFormatter) LeftStyle(git.AlignedLine) lipgloss.Style  { return emptyStyle }
+func (deletedFormatter) RightStyle(git.AlignedLine) lipgloss.Style { return emptyStyle }
 
 type modifiedFormatter struct{}
 
@@ -58,8 +58,8 @@ func (modifiedFormatter) LeftContent(ln git.AlignedLine) string    { return ln.O
 func (modifiedFormatter) RightContent(ln git.AlignedLine) string   { return ln.NewContent }
 func (modifiedFormatter) LeftPrefix(git.AlignedLine) string        { return "-" }
 func (modifiedFormatter) RightPrefix(git.AlignedLine) string       { return "+" }
-func (modifiedFormatter) LeftStyle(git.AlignedLine, bool) lipgloss.Style  { return emptyStyle }
-func (modifiedFormatter) RightStyle(git.AlignedLine, bool) lipgloss.Style { return emptyStyle }
+func (modifiedFormatter) LeftStyle(git.AlignedLine) lipgloss.Style  { return emptyStyle }
+func (modifiedFormatter) RightStyle(git.AlignedLine) lipgloss.Style { return emptyStyle }
 
 var DefaultFormatters = NewDefaultFormatters()
 
@@ -73,7 +73,7 @@ func NewDefaultFormatters() map[git.LineKind]LineFormatter {
 
 }
 
-func RenderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor bool, sh *SyntaxHighlighter, filePath string, hScroll int, singlePanel bool, theme models.Theme) string {
+func RenderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, sh *SyntaxHighlighter, filePath string, hScroll int, singlePanel bool, theme models.Theme) string {
 	oldNum := ""
 	if ln.OldLineNum > 0 {
 		oldNum = strconv.Itoa(ln.OldLineNum)
@@ -95,19 +95,19 @@ func RenderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, cursor
 
 	if singlePanel {
 		prefix := fmt.Sprintf("%*s %s ", LineNumColWidth, newNum, f.RightPrefix(ln))
-		return renderStyledLine(prefix, rightContent, colWidth, ln.Kind, false, cursor, sh, filePath, theme)
+		return renderStyledLine(prefix, rightContent, colWidth, ln.Kind, false, sh, filePath, theme)
 	}
 
 	leftPrefix := fmt.Sprintf("%*s %s ", LineNumColWidth, oldNum, f.LeftPrefix(ln))
 	rightPrefix := fmt.Sprintf("%*s %s ", LineNumColWidth, newNum, f.RightPrefix(ln))
 
-	leftRendered := renderStyledLine(leftPrefix, leftContent, colWidth, ln.Kind, true, cursor, sh, filePath, theme)
-	rightRendered := renderStyledLine(rightPrefix, rightContent, colWidth, ln.Kind, false, cursor, sh, filePath, theme)
+	leftRendered := renderStyledLine(leftPrefix, leftContent, colWidth, ln.Kind, true, sh, filePath, theme)
+	rightRendered := renderStyledLine(rightPrefix, rightContent, colWidth, ln.Kind, false, sh, filePath, theme)
 
 	return leftRendered + rightRendered
 }
 
-func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLeft bool, cursor bool, sh *SyntaxHighlighter, filePath string, theme models.Theme) string {
+func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLeft bool, sh *SyntaxHighlighter, filePath string, theme models.Theme) string {
 	bgColor := theme.BgFor(kind, isLeft)
 	if bgColor == "" {
 		bgColor = theme.PanelBg
@@ -122,11 +122,7 @@ func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLe
 	if fg := theme.LineNumFg(kind, isLeft); fg != "" {
 		numStyle = numStyle.Foreground(lipgloss.Color(fg))
 	}
-	if cursor {
-		numStyle = numStyle.Background(lipgloss.Color(theme.CursorBgFor(numBg)))
-	} else {
-		numStyle = numStyle.Background(lipgloss.Color(numBg))
-	}
+	numStyle = numStyle.Background(lipgloss.Color(numBg))
 
 	prefixRendered := numStyle.Render(prefix)
 

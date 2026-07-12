@@ -44,7 +44,6 @@ func (p *Panel) Render(vis int) string {
 	}
 
 	p.scroller.UpdateScroll(total, vis)
-	cursorLine := p.scroller.CursorLine()
 	hScroll := p.scroller.HScroll()
 
 	start := p.scroller.Scroll()
@@ -68,7 +67,6 @@ func (p *Panel) Render(vis int) string {
 
 	for gi := start; gi < end; gi++ {
 		fl := p.flatLines[gi]
-		cursor := gi == cursorLine
 
 		if fl.FileIdx != curFile {
 			flush()
@@ -77,7 +75,7 @@ func (p *Panel) Render(vis int) string {
 
 		var line string
 		if fl.IsHeader {
-			line = p.renderFileHeader(fl, innerWidth, cursor)
+			line = p.renderFileHeader(fl, innerWidth)
 		} else {
 			f := p.diffs[fl.FileIdx]
 			h := f.Hunks[fl.HunkIdx]
@@ -90,7 +88,7 @@ func (p *Panel) Render(vis int) string {
 				colWidth = (innerWidth - 3) / 2
 			}
 
-			line = diff.RenderAlignedLine(fmtr, ln, colWidth, cursor, p.highlighter, f.NewPath, hScroll, singlePanel, p.theme)
+			line = diff.RenderAlignedLine(fmtr, ln, colWidth, p.highlighter, f.NewPath, hScroll, singlePanel, p.theme)
 		}
 
 		cur = append(cur, line)
@@ -110,14 +108,11 @@ func (p *Panel) Render(vis int) string {
 	return strings.Join(rendered, "\n")
 }
 
-func (p *Panel) renderFileHeader(fl diff.FlatLine, colWidth int, cursor bool) string {
+func (p *Panel) renderFileHeader(fl diff.FlatLine, colWidth int) string {
 	f := p.diffs[fl.FileIdx]
 	stats := p.fileStats[fl.FileIdx]
 
 	bgColor := p.theme.PanelHeaderBg
-	if cursor {
-		bgColor = p.theme.CursorBgFor(bgColor)
-	}
 
 	bg := lipgloss.NewStyle().Background(lipgloss.Color(bgColor))
 	normalStyle := bg.Foreground(lipgloss.Color(p.theme.ContextFg))

@@ -28,9 +28,13 @@ func (m *RightPanelMode) Render(model *Model) string {
 	panelWidth := max(model.width-panelBorderWidth, panelMinWidth)
 	content := m.renderSinglePanel(model, panelWidth, contentVis)
 
-	cursorFileIdx := model.flatLines[model.scroller.CursorLine()].FileIdx
+	scroll := model.scroller.Scroll()
+	if scroll >= len(model.flatLines) {
+		scroll = max(0, len(model.flatLines)-1)
+	}
+	cursorFileIdx := model.flatLines[scroll].FileIdx
 	f := model.diffs[cursorFileIdx]
-	statusBar := widget.NewStatusBar(f.NewPath, cursorFileIdx, len(model.diffs), model.scroller.CursorLine(), len(model.flatLines), model.width, theme)
+	statusBar := widget.NewStatusBar(f.NewPath, cursorFileIdx, len(model.diffs), model.width, theme)
 
 	result := fmt.Sprintf("%s\n%s", statusBar.Render(), content)
 	result = lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg)).Render(result)
@@ -59,7 +63,6 @@ func (m *RightPanelMode) renderSinglePanel(model *Model, width int, vis int) str
 
 	theme := model.CurrentTheme()
 	model.scroller.UpdateScroll(total, vis)
-	cursorLine := model.scroller.CursorLine()
 	hScroll := model.scroller.HScroll()
 
 	start := model.scroller.Scroll()
@@ -73,10 +76,9 @@ func (m *RightPanelMode) renderSinglePanel(model *Model, width int, vis int) str
 	var lines []string
 	for gi := start; gi < end; gi++ {
 		fl := model.flatLines[gi]
-		cursor := gi == cursorLine
 
 		if fl.IsHeader {
-			lines = append(lines, model.renderFileHeader(fl, width, cursor))
+			lines = append(lines, model.renderFileHeader(fl, width))
 		} else {
 			f := model.diffs[fl.FileIdx]
 			h := f.Hunks[fl.HunkIdx]
@@ -117,7 +119,7 @@ func (m *RightPanelMode) renderSinglePanel(model *Model, width int, vis int) str
 			content = ansi.Cut(content, hScroll, hScroll+contentAreaWidth)
 
 			prefixStr := fmt.Sprintf("%*s %s ", diff.LineNumColWidth, newNum, prefix)
-			line := renderStyledLine(prefixStr, content, width, kind, isLeft, cursor, model.highlighter, f.NewPath, theme)
+			line := renderStyledLine(prefixStr, content, width, kind, isLeft, model.highlighter, f.NewPath, theme)
 			lines = append(lines, line)
 		}
 	}
@@ -125,7 +127,7 @@ func (m *RightPanelMode) renderSinglePanel(model *Model, width int, vis int) str
 	return strings.Join(lines, "\n")
 }
 
-func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLeft bool, cursor bool, sh *diff.SyntaxHighlighter, filePath string, theme models.Theme) string {
+func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLeft bool, sh *diff.SyntaxHighlighter, filePath string, theme models.Theme) string {
 	bgColor := theme.BgFor(kind, isLeft)
 	if bgColor == "" {
 		bgColor = theme.PanelBg
@@ -136,29 +138,20 @@ func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLe
 		numBg = theme.LineNumberBg
 	}
 
-	baseStyle := lipgloss.NewStyle()
-	if cursor {
-		baseStyle = baseStyle.Background(lipgloss.Color(theme.CursorBgFor(bgColor)))
-	} else {
-		baseStyle = baseStyle.Background(lipgloss.Color(bgColor))
-	}
+	baseStyle := lipgloss.NewStyle().Background(lipgloss.Color(bgColor))
 
 	numStyle := lipgloss.NewStyle()
 	if fg := theme.LineNumFg(kind, isLeft); fg != "" {
 		numStyle = numStyle.Foreground(lipgloss.Color(fg))
 	}
-	if cursor {
-		numStyle = numStyle.Background(lipgloss.Color(theme.CursorBgFor(numBg)))
-	} else {
-		numStyle = numStyle.Background(lipgloss.Color(numBg))
-	}
+	numStyle = numStyle.Background(lipgloss.Color(numBg))
 
 	prefixRendered := numStyle.Render(prefix)
 
 	var contentRendered string
 	if sh != nil {
 		contentRendered = sh.HighlightWithStyle(content, filePath, baseStyle, theme)
-	} else if cursor || bgColor != "" {
+	} else if bgColor != "" {
 		contentRendered = baseStyle.Render(content)
 	} else {
 		contentRendered = content

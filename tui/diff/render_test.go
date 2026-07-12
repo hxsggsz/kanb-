@@ -19,7 +19,7 @@ func TestRenderAlignedLinePreservesANSI(t *testing.T) {
 		Kind:       git.KindContext,
 	}
 	fmtr := DefaultFormatters[ln.Kind]
-	result := RenderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
+	result := RenderAlignedLine(fmtr, ln, 80, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
 	if !strings.Contains(result, "\x1b[") {
 		t.Fatal("expected ANSI escape codes in rendered output")
 	}
@@ -33,7 +33,7 @@ func TestRenderAlignedLineAddsBackground(t *testing.T) {
 		Kind:       git.KindAdded,
 	}
 	fmtr := DefaultFormatters[ln.Kind]
-	result := RenderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
+	result := RenderAlignedLine(fmtr, ln, 80, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
 
 	if !strings.Contains(result, "48;2;51;60;72") {
 		t.Fatalf("expected added background, got: %q", result)
@@ -57,7 +57,7 @@ func TestRenderAlignedLineDeletedBackground(t *testing.T) {
 		Kind:       git.KindDeleted,
 	}
 	fmtr := DefaultFormatters[ln.Kind]
-	result := RenderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
+	result := RenderAlignedLine(fmtr, ln, 80, sh, "main.go", 0, false, models.GetTheme("rose-pine"))
 
 	if !strings.Contains(result, "48;2;67;41;58") {
 		t.Fatalf("expected removed background, got: %q", result)
@@ -77,7 +77,7 @@ func TestRenderAlignedLineSinglePanel(t *testing.T) {
 		Kind:       git.KindAdded,
 	}
 	fmtr := DefaultFormatters[ln.Kind]
-	result := RenderAlignedLine(fmtr, ln, 80, false, sh, "main.go", 0, true, models.GetTheme("rose-pine"))
+	result := RenderAlignedLine(fmtr, ln, 80, sh, "main.go", 0, true, models.GetTheme("rose-pine"))
 
 	if !strings.Contains(result, "48;2;51;60;72") {
 		t.Fatal("expected added background")

@@ -83,7 +83,6 @@ func (m *Model) renderContinuous(width int, vis int) string {
 	theme := m.CurrentTheme()
 
 	m.scroller.UpdateScroll(total, vis)
-	cursorLine := m.scroller.CursorLine()
 	hScroll := m.scroller.HScroll()
 
 	start := m.scroller.Scroll()
@@ -98,9 +97,8 @@ func (m *Model) renderContinuous(width int, vis int) string {
 
 	for gi := start; gi < end; gi++ {
 		fl := m.flatLines[gi]
-		cursor := gi == cursorLine
 
-		line := m.renderLine(fl, width, cursor, hScroll, selHighlighter, gi, theme)
+		line := m.renderLine(fl, width, hScroll, selHighlighter, gi, theme)
 		selectedTextParts = m.accumulateSelectedText(selectedTextParts, line, gi, selHighlighter, theme)
 
 		if w := lipgloss.Width(line); w < width {
@@ -129,9 +127,9 @@ func (m *Model) buildSelectionHighlighter(width int) *SelectionHighlighter {
 	return NewSelectionHighlighter(sel, width/2)
 }
 
-func (m *Model) renderLine(fl diff.FlatLine, width int, cursor bool, hScroll int, selHighlighter *SelectionHighlighter, gi int, theme models.Theme) string {
+func (m *Model) renderLine(fl diff.FlatLine, width int, hScroll int, selHighlighter *SelectionHighlighter, gi int, theme models.Theme) string {
 	if fl.IsHeader {
-		return m.renderFileHeader(fl, width, cursor)
+		return m.renderFileHeader(fl, width)
 	}
 
 	f := m.diffs[fl.FileIdx]
@@ -145,7 +143,7 @@ func (m *Model) renderLine(fl diff.FlatLine, width int, cursor bool, hScroll int
 		colWidth = width / 2
 	}
 
-	line := diff.RenderAlignedLine(fmtr, ln, colWidth, cursor, m.highlighter, f.NewPath, hScroll, singlePanel, theme)
+	line := diff.RenderAlignedLine(fmtr, ln, colWidth, m.highlighter, f.NewPath, hScroll, singlePanel, theme)
 
 	if selHighlighter == nil {
 		return line
@@ -223,15 +221,12 @@ func stripBackgrounds(s string) string {
 	})
 }
 
-func (m *Model) renderFileHeader(fl diff.FlatLine, colWidth int, cursor bool) string {
+func (m *Model) renderFileHeader(fl diff.FlatLine, colWidth int) string {
 	theme := m.CurrentTheme()
 	f := m.diffs[fl.FileIdx]
 	stats := m.fileStats[fl.FileIdx]
 
 	bgColor := theme.PanelHeaderBg
-	if cursor {
-		bgColor = theme.CursorBgFor(bgColor)
-	}
 
 	bg := lipgloss.NewStyle().Background(lipgloss.Color(bgColor))
 	normalStyle := bg.Foreground(lipgloss.Color(theme.ContextFg))
@@ -300,8 +295,8 @@ func (m *Model) helpContent(theme models.Theme) string {
 	buf.WriteString(accentStyle.Render(" Keybindings"))
 	buf.WriteString("\n\n")
 	bindings := []struct{ key, desc string }{
-		{"\u2191/k", "Cursor up"},
-		{"\u2193/j", "Cursor down"},
+		{"\u2191/k", "Scroll up"},
+		{"\u2193/j", "Scroll down"},
 		{"h/\u2190", "Scroll left 8 cols"},
 		{"l/\u2192", "Scroll right 8 cols"},
 		{"C-\u2190/C-\u2192", "Scroll 32 cols"},
