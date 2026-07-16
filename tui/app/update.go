@@ -62,14 +62,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.selectedText = ""
 		return m, nil
-
-	case clearCopyMsg:
-		m.copyMsg = ""
 	}
 	return m, nil
 }
-
-type clearCopyMsg struct{}
 
 func (m *Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.width = msg.Width
@@ -178,9 +173,8 @@ func (m *Model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			slog.Warn("failed to copy path to clipboard", "error", err)
 		}
 		m.copyMsg = " ✓ " + path
-		return m, tea.Tick(3*time.Second, func(t time.Time) tea.Msg {
-			return clearCopyMsg{}
-		})
+		m.copyMsgTill = time.Now().Add(3 * time.Second)
+		return m, nil
 	}
 
 	return m, nil
@@ -355,6 +349,16 @@ func (m *Model) handleMouseClick(msg tea.MouseClickMsg) *Model {
 
 	panel, line, col := m.mapMouseToContent(msg.X, msg.Y)
 	isClickInContent := panel >= 0
+	if isClickInContent && line < len(m.flatLines) && m.flatLines[line].IsHeader {
+		path := m.diffs[m.flatLines[line].FileIdx].NewPath
+		if err := selection.CopyToClipboard(path); err != nil {
+			slog.Warn("failed to copy path to clipboard", "error", err)
+		}
+		m.copyMsg = " ✓ " + path
+		m.copyMsgTill = time.Now().Add(3 * time.Second)
+		return m
+	}
+
 	hasSelection := m.selection != nil
 	if isClickInContent && hasSelection {
 		m.selection.HandleClick(panel, line, col)
@@ -433,10 +437,6 @@ func (m *Model) mapMouseToContent(x, y int) (selection.PanelSide, int, int) {
 		visualRow += h
 	}
 
-	// Skip headers (unless it's the sticky header, already handled above)
-	for targetLine < len(m.flatLines) && m.flatLines[targetLine].IsHeader {
-		targetLine++
-	}
 	isOutOfBounds := targetLine >= len(m.flatLines)
 	if isOutOfBounds {
 		return -1, 0, 0

@@ -1,6 +1,8 @@
 package app
 
 import (
+	"time"
+
 	models "kanba/tui/models"
 	"kanba/tui/diff"
 	"kanba/tui/selection"
@@ -39,7 +41,8 @@ type Model struct {
 	modeFactory  *ModeFactory
 	visibleLines int
 
-	copyMsg string
+	copyMsg     string
+	copyMsgTill time.Time
 }
 
 func (m *Model) TotalLines() int {

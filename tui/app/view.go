@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"kanba/tui/diff"
 	"kanba/tui/models"
@@ -17,6 +18,11 @@ import (
 )
 
 func (m *Model) View() tea.View {
+	if !m.copyMsgTill.IsZero() && time.Now().After(m.copyMsgTill) {
+		m.copyMsg = ""
+		m.copyMsgTill = time.Time{}
+	}
+
 	v := tea.NewView("")
 	v.AltScreen = true
 	v.MouseMode = tea.MouseModeCellMotion
