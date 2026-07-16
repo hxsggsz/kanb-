@@ -21,4 +21,5 @@ const (
 	KeyHome      = "_"
 	KeyEnd       = "$"
 	KeyTheme     = "t"
+	KeyCopyPath  = "y"
 )

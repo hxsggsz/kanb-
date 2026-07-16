@@ -158,6 +158,20 @@ func (m *Model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case setting.KeyTheme:
 		m.themeModal.Active = true
 		m.themeModal.SyncCursor(m.themeModal.Selected)
+
+	case setting.KeyCopyPath:
+		if len(m.flatLines) == 0 {
+			break
+		}
+		scroll := m.scroller.Scroll()
+		if scroll >= len(m.flatLines) {
+			scroll = max(0, len(m.flatLines)-1)
+		}
+		cursorFileIdx := m.flatLines[scroll].FileIdx
+		path := m.diffs[cursorFileIdx].NewPath
+		if err := selection.CopyToClipboard(path); err != nil {
+			slog.Warn("failed to copy path to clipboard", "error", err)
+		}
 	}
 
 	return m, nil
