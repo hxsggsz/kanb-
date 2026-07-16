@@ -8,6 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/spf13/cobra"
 
+	"kanba/config"
 	"kanba/git"
 	"kanba/tui"
 )
@@ -35,7 +36,12 @@ func RunTUI(gitArgs []string) {
 		os.Exit(1)
 	}
 
-	p := tea.NewProgram(tui.New(repoPath, gitArgs))
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: config error: %v\n", err)
+	}
+
+	p := tea.NewProgram(tui.New(repoPath, gitArgs, cfg))
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

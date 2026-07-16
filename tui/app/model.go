@@ -51,14 +51,18 @@ func (m *Model) CurrentTheme() models.Theme {
 	return models.GetTheme("rose-pine")
 }
 
-func New(repoPath string, gitArgs []string) *Model {
+func New(repoPath string, gitArgs []string, themeName string) *Model {
 	themeItems := make([]models.ModalItem, 0, len(models.Themes))
 	for _, k := range models.SortedThemeKeys() {
 		t := models.Themes[k]
 		themeItems = append(themeItems, models.ModalItem{Key: k, Label: t.Name})
 	}
 	themeModal := models.NewModal("Theme", themeItems)
-	themeModal.Selected = "rose-pine"
+
+	if _, ok := models.Themes[themeName]; !ok {
+		themeName = models.SortedThemeKeys()[0]
+	}
+	themeModal.Selected = themeName
 
 	factory := &ModeFactory{}
 
