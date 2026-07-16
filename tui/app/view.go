@@ -77,6 +77,45 @@ func (m *Model) emptyView() string {
 		Render(" No changes to show.")
 }
 
+func stickyHeaderIndex(flatLines []diff.FlatLine, start int) int {
+	if start >= len(flatLines) {
+		return -1
+	}
+	targetFile := flatLines[start].FileIdx
+	for i := start; i >= 0; i-- {
+		if flatLines[i].IsHeader && flatLines[i].FileIdx == targetFile {
+			if i < start {
+				return i
+			}
+			return -1
+		}
+	}
+	return -1
+}
+
+func (m *Model) renderStickyHeader(fl diff.FlatLine, width int, selHighlighter *SelectionHighlighter, gi int, theme models.Theme) (string, string) {
+	line := m.renderFileHeader(fl, width)
+	if selHighlighter == nil {
+		return line, ""
+	}
+
+	_, _, inRange := selHighlighter.visualColumns(gi)
+	if !inRange {
+		return line, ""
+	}
+
+	return line, extractHeaderPath(line)
+}
+
+func extractHeaderPath(line string) string {
+	s := ansi.Strip(line)
+	s = strings.TrimSpace(s)
+	if idx := strings.Index(s, "("); idx >= 0 {
+		s = strings.TrimSpace(s[:idx])
+	}
+	return s
+}
+
 func (m *Model) renderContinuous(width int, vis int) string {
 	total := len(m.flatLines)
 	if total == 0 {
@@ -102,6 +141,15 @@ func (m *Model) renderContinuous(width int, vis int) string {
 
 	var lines []string
 	var selectedTextParts []string
+
+	if si := stickyHeaderIndex(m.flatLines, start); si >= 0 {
+		line, selText := m.renderStickyHeader(m.flatLines[si], width, selHighlighter, si, theme)
+		lines = append(lines, line)
+		if selText != "" {
+			selectedTextParts = append(selectedTextParts, selText)
+		}
+		end = min(start+vis-1, total)
+	}
 
 	end, needsBorder := m.reserveLastPanelBorder(start, end)
 

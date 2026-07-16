@@ -385,6 +385,17 @@ func (m *Model) mapMouseToContent(x, y int) (selection.PanelSide, int, int) {
 	start := m.scroller.Scroll()
 	vis := m.VisibleLines()
 	total := m.TotalLines()
+
+	// Account for sticky header at the top
+	if si := stickyHeaderIndex(m.flatLines, start); si >= 0 {
+		sh := m.lineVisualHeight(m.flatLines[si])
+		if contentY < sh {
+			return selection.PanelLeft, si, 0
+		}
+		contentY -= sh
+		vis-- // sticky header takes one flat line slot
+	}
+
 	end := min(start+vis, total)
 	visualRow := 0
 	targetLine := end - 1
@@ -399,7 +410,7 @@ func (m *Model) mapMouseToContent(x, y int) (selection.PanelSide, int, int) {
 		visualRow += h
 	}
 
-	// Skip headers
+	// Skip headers (unless it's the sticky header, already handled above)
 	for targetLine < len(m.flatLines) && m.flatLines[targetLine].IsHeader {
 		targetLine++
 	}

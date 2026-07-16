@@ -73,9 +73,22 @@ func (m *RightPanelMode) renderSinglePanel(model *Model, width int, vis int) str
 		contentAreaWidth = 0
 	}
 
-	end, needsBorder := model.reserveLastPanelBorder(start, end)
+	selHighlighter := model.buildSelectionHighlighter(width)
 
 	var lines []string
+	var selectedTextParts []string
+
+	if si := stickyHeaderIndex(model.flatLines, start); si >= 0 {
+		line, selText := model.renderStickyHeader(model.flatLines[si], width, selHighlighter, si, theme)
+		lines = append(lines, line)
+		if selText != "" {
+			selectedTextParts = append(selectedTextParts, selText)
+		}
+		end = min(start+vis-1, total)
+	}
+
+	end, needsBorder := model.reserveLastPanelBorder(start, end)
+
 	for gi := start; gi < end; gi++ {
 		fl := model.flatLines[gi]
 
@@ -138,6 +151,7 @@ func (m *RightPanelMode) renderSinglePanel(model *Model, width int, vis int) str
 		lines = append(lines, marginStyle)
 	}
 
+	model.selectedText = strings.Join(selectedTextParts, "\n")
 	return strings.Join(lines, "\n")
 }
 
