@@ -48,7 +48,9 @@ resolve_version() {
 }
 
 main() {
-  read -r OS ARCH <<< "$(detect_platform)"
+  local platform
+  platform=$(detect_platform) || exit 1
+  read -r OS ARCH <<< "$platform"
   VERSION=$(resolve_version)
 
   local asset="kanba-${VERSION}-${OS}-${ARCH}.tar.gz"
@@ -64,7 +66,11 @@ main() {
     exit 1
   fi
 
-  curl -fsSL -o "${tmp_dir}/checksums.txt" "${base_url}/checksums.txt"
+  if ! curl -fsSL -o "${tmp_dir}/checksums.txt" "${base_url}/checksums.txt"; then
+    echo "Error: checksums file not found: ${base_url}/checksums.txt" >&2
+    echo "Check that version '${VERSION}' exists: https://github.com/${REPO}/releases" >&2
+    exit 1
+  fi
 
   echo "Verifying checksum..."
   (cd "$tmp_dir" && grep "$asset" checksums.txt | sha256sum -c -) || {
