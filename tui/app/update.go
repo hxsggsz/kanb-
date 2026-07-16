@@ -3,6 +3,7 @@ package app
 import (
 	"log/slog"
 
+	models "kanba/tui/models"
 	"kanba/tui/diff"
 	"kanba/tui/selection"
 	"kanba/tui/setting"
@@ -221,15 +222,41 @@ func (m *Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) handleThemeModalKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case setting.KeyUp, setting.KeyUpAlt:
-		m.themeModal.MoveUp()
-	case setting.KeyDown, setting.KeyDownAlt:
-		m.themeModal.MoveDown()
-	case "enter":
-		m.themeModal.Select()
-	case setting.KeyTheme, setting.KeyBack, setting.KeyQuitAlt:
-		m.themeModal.Close()
+	if m.themeModal.IsFocused {
+		switch msg.String() {
+		case setting.KeyBack:
+			if m.themeModal.FilterQuery != "" {
+				m.themeModal.Filter("")
+				m.themeModal.FocusList()
+			} else {
+				m.themeModal.Close()
+			}
+		case "enter":
+			m.themeModal.Select()
+		case "tab", setting.KeyDown, setting.KeyUp:
+			m.themeModal.MoveDown()
+		case "backspace":
+			m.themeModal.HandleBackspace()
+		default:
+			if text := msg.Key().Text; text != "" {
+				for _, r := range text {
+					m.themeModal.HandleRune(r)
+				}
+			}
+		}
+	} else {
+		switch msg.String() {
+		case "/":
+			m.themeModal.FocusInput()
+		case setting.KeyUp, setting.KeyUpAlt:
+			m.themeModal.MoveUp()
+		case setting.KeyDown, setting.KeyDownAlt:
+			m.themeModal.MoveDown()
+		case "enter":
+			m.themeModal.Select()
+		case setting.KeyTheme, setting.KeyBack, setting.KeyQuitAlt:
+			m.themeModal.Close()
+		}
 	}
 	return m, nil
 }
@@ -252,8 +279,10 @@ func (m *Model) handleMouseClick(msg tea.MouseClickMsg) *Model {
 
 		if x >= modalX && x < modalX+fgWidth && y >= modalY && y < modalY+fgHeight {
 			relY := y - modalY
-			if relY >= 4 && relY < 4+len(m.themeModal.Items) {
-				idx := relY - 4
+			n := m.themeModal.VisibleCount()
+			start := models.ListStartLine
+			if relY >= start && relY < start+n {
+				idx := m.themeModal.ScrollOffset + relY - start
 				m.themeModal.Cursor = idx
 				m.themeModal.Select()
 				m.themeModal.SyncCursor(m.themeModal.Selected)
