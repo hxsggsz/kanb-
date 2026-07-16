@@ -35,7 +35,7 @@ func TestScrollForDifferentHeights(t *testing.T) {
 		{"height=5", 80, 5, 2},
 	}
 
-	for _, tc := range tests {
+		for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			lines := make([]string, 100)
 			for i := range lines {
@@ -55,7 +55,10 @@ func TestScrollForDifferentHeights(t *testing.T) {
 				m.scroller.MoveDown(len(m.flatLines), m.visibleLines)
 			}
 
-			expected := tc.scrollAmount
+			expected := min(tc.scrollAmount*diff.VScrollStep, len(m.flatLines)-m.visibleLines)
+			if expected < 0 {
+				expected = 0
+			}
 			if m.scroller.Scroll() != expected {
 				t.Errorf("expected scroll=%d, got %d", expected, m.scroller.Scroll())
 			}
