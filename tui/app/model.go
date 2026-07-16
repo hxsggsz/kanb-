@@ -38,6 +38,8 @@ type Model struct {
 	activeMode   ViewMode
 	modeFactory  *ModeFactory
 	visibleLines int
+
+	copyMsg string
 }
 
 func (m *Model) TotalLines() int {

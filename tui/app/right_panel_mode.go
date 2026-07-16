@@ -34,7 +34,7 @@ func (m *RightPanelMode) Render(model *Model) string {
 	}
 	cursorFileIdx := model.flatLines[scroll].FileIdx
 	f := model.diffs[cursorFileIdx]
-	statusBar := widget.NewStatusBar(f.NewPath, cursorFileIdx, len(model.diffs), model.width, theme)
+	statusBar := widget.NewStatusBar(f.NewPath, cursorFileIdx, len(model.diffs), model.width, theme, model.copyMsg)
 
 	result := fmt.Sprintf("%s\n%s", statusBar.Render(), content)
 	result = lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg)).Render(result)

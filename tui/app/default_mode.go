@@ -34,7 +34,7 @@ func (m *DefaultMode) Render(model *Model) string {
 	content := model.renderContinuous(panelWidth, contentVis)
 
 	f := model.diffs[cursorFileIdx]
-	statusBar := widget.NewStatusBar(f.NewPath, cursorFileIdx, len(model.diffs), model.width, theme)
+	statusBar := widget.NewStatusBar(f.NewPath, cursorFileIdx, len(model.diffs), model.width, theme, model.copyMsg)
 
 	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebarStr, content)
 	result := fmt.Sprintf("%s\n%s", statusBar.Render(), body)

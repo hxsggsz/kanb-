@@ -2,6 +2,7 @@ package app
 
 import (
 	"log/slog"
+	"time"
 
 	models "kanba/tui/models"
 	"kanba/tui/diff"
@@ -61,10 +62,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.selectedText = ""
 		return m, nil
-	}
 
+	case clearCopyMsg:
+		m.copyMsg = ""
+	}
 	return m, nil
 }
+
+type clearCopyMsg struct{}
 
 func (m *Model) handleWindowSizeMsg(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	m.width = msg.Width
@@ -172,6 +177,10 @@ func (m *Model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if err := selection.CopyToClipboard(path); err != nil {
 			slog.Warn("failed to copy path to clipboard", "error", err)
 		}
+		m.copyMsg = " ✓ " + path
+		return m, tea.Tick(3*time.Second, func(t time.Time) tea.Msg {
+			return clearCopyMsg{}
+		})
 	}
 
 	return m, nil
