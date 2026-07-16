@@ -42,6 +42,13 @@ func (m *Model) View() tea.View {
 	return v
 }
 
+func (m *Model) reserveLastPanelBorder(start, end int) (int, bool) {
+	if end > 0 && end == len(m.flatLines) && m.flatLines[end-1].FileIdx == len(m.diffs)-1 {
+		return end - 2, true
+	}
+	return end, false
+}
+
 func (m *Model) loadingView() string {
 	theme := m.CurrentTheme()
 	return lipgloss.NewStyle().
@@ -88,12 +95,15 @@ func (m *Model) renderContinuous(width int, vis int) string {
 	start := m.scroller.Scroll()
 	end := min(start+vis, total)
 
-	padStyle := lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg))
+	padStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color(theme.PanelBg))
 
 	selHighlighter := m.buildSelectionHighlighter(width)
 
 	var lines []string
 	var selectedTextParts []string
+
+	end, needsBorder := m.reserveLastPanelBorder(start, end)
 
 	for gi := start; gi < end; gi++ {
 		fl := m.flatLines[gi]
@@ -105,6 +115,18 @@ func (m *Model) renderContinuous(width int, vis int) string {
 			line += padStyle.Render(strings.Repeat(" ", width-w))
 		}
 		lines = append(lines, line)
+	}
+
+	if needsBorder {
+		borderStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color(theme.SidebarDir)).
+			Background(lipgloss.Color(theme.PanelBg)).
+			Render(strings.Repeat("─", width))
+		lines = append(lines, borderStyle)
+		marginStyle := lipgloss.NewStyle().
+			Background(lipgloss.Color(theme.PanelBg)).
+			Render(strings.Repeat(" ", width))
+		lines = append(lines, marginStyle)
 	}
 
 	m.selectedText = strings.Join(selectedTextParts, "\n")

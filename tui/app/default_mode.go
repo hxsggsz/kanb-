@@ -40,7 +40,10 @@ func (m *DefaultMode) Render(model *Model) string {
 	result := fmt.Sprintf("%s\n%s", statusBar.Render(), body)
 
 	theme = model.CurrentTheme()
-	result = lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg)).Render(result)
+	result = lipgloss.
+		NewStyle().
+		Background(lipgloss.Color(theme.PanelBg)).
+		Render(result)
 	result = model.themeModal.Overlay(result, theme.PanelBg, theme.SidebarSelected, theme.ContextFg, sideWidth, panelWidth)
 
 	if model.helpActive {

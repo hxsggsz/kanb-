@@ -73,6 +73,8 @@ func (m *RightPanelMode) renderSinglePanel(model *Model, width int, vis int) str
 		contentAreaWidth = 0
 	}
 
+	end, needsBorder := model.reserveLastPanelBorder(start, end)
+
 	var lines []string
 	for gi := start; gi < end; gi++ {
 		fl := model.flatLines[gi]
@@ -122,6 +124,18 @@ func (m *RightPanelMode) renderSinglePanel(model *Model, width int, vis int) str
 			line := renderStyledLine(prefixStr, content, width, kind, isLeft, model.highlighter, f.NewPath, theme)
 			lines = append(lines, line)
 		}
+	}
+
+	if needsBorder {
+		borderStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color(theme.SidebarDir)).
+			Background(lipgloss.Color(theme.PanelBg)).
+			Render(strings.Repeat("─", width))
+		lines = append(lines, borderStyle)
+		marginStyle := lipgloss.NewStyle().
+			Background(lipgloss.Color(theme.PanelBg)).
+			Render(strings.Repeat(" ", width))
+		lines = append(lines, marginStyle)
 	}
 
 	return strings.Join(lines, "\n")
