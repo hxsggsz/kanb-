@@ -82,13 +82,14 @@ func (p *Panel) Render(vis int) string {
 			ln := h.Lines[fl.LineIdx]
 			fmtr := diff.DefaultFormatters[ln.Kind]
 
-			singlePanel := f.Status == "A"
+			singlePanel := f.Status == "A" || f.Status == "D"
+			singlePanelLeft := f.Status == "D"
 			colWidth := innerWidth
 			if !singlePanel {
 				colWidth = (innerWidth - 3) / 2
 			}
 
-			line = diff.RenderAlignedLine(fmtr, ln, colWidth, p.highlighter, f.NewPath, hScroll, singlePanel, p.theme)
+			line = diff.RenderAlignedLine(fmtr, ln, colWidth, p.highlighter, f.NewPath, hScroll, singlePanel, singlePanelLeft, p.theme)
 		}
 
 		cur = append(cur, line)

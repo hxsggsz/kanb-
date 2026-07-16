@@ -213,13 +213,14 @@ func (m *Model) renderLine(fl diff.FlatLine, width int, hScroll int, selHighligh
 	ln := h.Lines[fl.LineIdx]
 	fmtr := diff.DefaultFormatters[ln.Kind]
 
-	singlePanel := f.Status == "A"
+	singlePanel := f.Status == "A" || f.Status == "D"
+	singlePanelLeft := f.Status == "D"
 	colWidth := width
 	if !singlePanel {
 		colWidth = width / 2
 	}
 
-	line := diff.RenderAlignedLine(fmtr, ln, colWidth, m.highlighter, f.NewPath, hScroll, singlePanel, theme)
+	line := diff.RenderAlignedLine(fmtr, ln, colWidth, m.highlighter, f.NewPath, hScroll, singlePanel, singlePanelLeft, theme)
 
 	if selHighlighter == nil {
 		return line

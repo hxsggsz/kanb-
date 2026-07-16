@@ -73,7 +73,7 @@ func NewDefaultFormatters() map[git.LineKind]LineFormatter {
 
 }
 
-func RenderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, sh *SyntaxHighlighter, filePath string, hScroll int, singlePanel bool, theme models.Theme) string {
+func RenderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, sh *SyntaxHighlighter, filePath string, hScroll int, singlePanel bool, singlePanelLeft bool, theme models.Theme) string {
 	oldNum := ""
 	if ln.OldLineNum > 0 {
 		oldNum = strconv.Itoa(ln.OldLineNum)
@@ -94,6 +94,10 @@ func RenderAlignedLine(f LineFormatter, ln git.AlignedLine, colWidth int, sh *Sy
 	rightContent = ansi.Cut(rightContent, hScroll, hScroll+contentAreaWidth)
 
 	if singlePanel {
+		if singlePanelLeft {
+			prefix := fmt.Sprintf("%*s %s ", LineNumColWidth, oldNum, f.LeftPrefix(ln))
+			return renderStyledLine(prefix, leftContent, colWidth, ln.Kind, true, sh, filePath, theme)
+		}
 		prefix := fmt.Sprintf("%*s %s ", LineNumColWidth, newNum, f.RightPrefix(ln))
 		return renderStyledLine(prefix, rightContent, colWidth, ln.Kind, false, sh, filePath, theme)
 	}
