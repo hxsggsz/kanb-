@@ -53,6 +53,10 @@ main() {
   read -r OS ARCH <<< "$platform"
   VERSION=$(resolve_version)
 
+  if [[ "$VERSION" != v* ]]; then
+    VERSION="v${VERSION}"
+  fi
+
   local asset="kanba-${VERSION}-${OS}-${ARCH}.tar.gz"
   local base_url="https://github.com/${REPO}/releases/download/${VERSION}"
   tmp_dir=$(mktemp -d)
@@ -73,7 +77,7 @@ main() {
   fi
 
   echo "Verifying checksum..."
-  (cd "$tmp_dir" && grep "$asset" checksums.txt | sha256sum -c -) || {
+  (cd "$tmp_dir" && grep -F -- "$asset" checksums.txt | sha256sum -c -) || {
     echo "Error: checksum verification failed for ${asset}. Aborting install." >&2
     exit 1
   }
