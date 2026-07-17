@@ -183,6 +183,10 @@ func (m *Model) renderContinuous(width int, vis int) string {
 		lines = append(lines, marginStyle)
 	}
 
+	for len(lines) < vis {
+		lines = append(lines, padStyle.Render(strings.Repeat(" ", width)))
+	}
+
 	m.selectedText = strings.Join(selectedTextParts, "\n")
 	return strings.Join(lines, "\n")
 }

@@ -42,6 +42,8 @@ func (m *DefaultMode) Render(model *Model) string {
 	theme = model.CurrentTheme()
 	result = lipgloss.
 		NewStyle().
+		Width(model.width).
+		Height(model.height).
 		Background(lipgloss.Color(theme.PanelBg)).
 		Render(result)
 	result = model.themeModal.Overlay(result, theme.SurfaceBg, theme.SidebarSelected, theme.ContextFg)

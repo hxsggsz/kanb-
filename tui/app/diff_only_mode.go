@@ -32,7 +32,11 @@ func (m *DiffOnlyMode) Render(model *Model) string {
 	statusBar := widget.NewStatusBar(f.NewPath, cursorFileIdx, len(model.diffs), model.width, theme, model.copyMsg)
 
 	result := fmt.Sprintf("%s\n%s", statusBar.Render(), content)
-	result = lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg)).Render(result)
+	result = lipgloss.NewStyle().
+		Width(model.width).
+		Height(model.height).
+		Background(lipgloss.Color(theme.PanelBg)).
+		Render(result)
 	result = model.themeModal.Overlay(result, theme.SurfaceBg, theme.SidebarSelected, theme.ContextFg)
 
 	if model.helpActive {

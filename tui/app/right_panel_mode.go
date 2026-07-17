@@ -37,7 +37,11 @@ func (m *RightPanelMode) Render(model *Model) string {
 	statusBar := widget.NewStatusBar(f.NewPath, cursorFileIdx, len(model.diffs), model.width, theme, model.copyMsg)
 
 	result := fmt.Sprintf("%s\n%s", statusBar.Render(), content)
-	result = lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg)).Render(result)
+	result = lipgloss.NewStyle().
+		Width(model.width).
+		Height(model.height).
+		Background(lipgloss.Color(theme.PanelBg)).
+		Render(result)
 	result = model.themeModal.Overlay(result, theme.SurfaceBg, theme.SidebarSelected, theme.ContextFg)
 
 	if model.helpActive {
@@ -149,6 +153,11 @@ func (m *RightPanelMode) renderSinglePanel(model *Model, width int, vis int) str
 			Background(lipgloss.Color(theme.PanelBg)).
 			Render(strings.Repeat(" ", width))
 		lines = append(lines, marginStyle)
+	}
+
+	fillStyle := lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg))
+	for len(lines) < vis {
+		lines = append(lines, fillStyle.Render(strings.Repeat(" ", width)))
 	}
 
 	model.selectedText = strings.Join(selectedTextParts, "\n")

@@ -94,8 +94,8 @@ func (s *Sidebar) Render() string {
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), false, true, false, false).
 		BorderForeground(lipgloss.Color(s.theme.SidebarDir)).
-		BorderBackground(lipgloss.Color(s.theme.SidebarBg)).
-		Background(lipgloss.Color(s.theme.SidebarBg)).
+		BorderBackground(lipgloss.Color(s.theme.SurfaceBg)).
+		Background(lipgloss.Color(s.theme.SurfaceBg)).
 		Width(s.width).
 		Render(content)
 }
@@ -106,7 +106,7 @@ func (s *Sidebar) renderDir(dir string) string {
 	avail := s.width - 4
 	return lipgloss.NewStyle().
 		Foreground(lipgloss.Color(s.theme.SidebarDir)).
-		Background(lipgloss.Color(s.theme.SidebarBg)).
+		Background(lipgloss.Color(s.theme.SurfaceBg)).
 		Render(" " + truncate(dir, avail-1))
 }
 
@@ -127,7 +127,7 @@ func (s *Sidebar) renderFile(e visualEntry) string {
 	_, filename := filepath.Split(e.file.NewPath)
 	st := s.stats[e.fileIdx]
 
-	bg := lipgloss.NewStyle().Background(lipgloss.Color(s.theme.SidebarBg))
+	bg := lipgloss.NewStyle().Background(lipgloss.Color(s.theme.SurfaceBg))
 
 	statusStyle := bg.Foreground(lipgloss.Color(statusFg(e.file.Status, s.theme)))
 	addStyle := bg.Foreground(lipgloss.Color(s.theme.SidebarAdded))
