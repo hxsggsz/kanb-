@@ -43,7 +43,22 @@ type Model struct {
 
 	copyMsg     string
 	copyMsgTill time.Time
+
+	version       string
+	updateState   updateState
+	updateVersion string
+	updateErr     string
 }
+
+type updateState int
+
+const (
+	updateStateNone updateState = iota
+	updateStateAvailable
+	updateStateUpdating
+	updateStateSucceeded
+	updateStateFailed
+)
 
 func (m *Model) TotalLines() int {
 	return len(m.flatLines)
@@ -56,7 +71,7 @@ func (m *Model) CurrentTheme() models.Theme {
 	return models.GetTheme("rose-pine")
 }
 
-func New(repoPath string, gitArgs []string, themeName string) *Model {
+func New(repoPath string, gitArgs []string, themeName string, version string) *Model {
 	themeItems := make([]models.ModalItem, 0, len(models.Themes))
 	for _, k := range models.SortedThemeKeys() {
 		t := models.Themes[k]
@@ -81,15 +96,42 @@ func New(repoPath string, gitArgs []string, themeName string) *Model {
 		selection:   selection.NewCoordinator(nil),
 		modeFactory: factory,
 		activeMode:  factory.FromWidth(80),
+		version:     version,
 	}
 }
 
 func (m *Model) Init() tea.Cmd {
-	return setting.GitDiffCmd(m.repoPath, m.gitArgs)
+	cmds := []tea.Cmd{setting.GitDiffCmd(m.repoPath, m.gitArgs)}
+	if m.version != "dev" {
+		cmds = append(cmds, setting.UpdateCheckCmd(m.version))
+	}
+	return tea.Batch(cmds...)
 }
 
 func (m *Model) VisibleLines() int {
 	return m.height - statusBarHeight
+}
+
+// statusRightMsg returns the message shown right-aligned in the status bar.
+// A transient copy confirmation takes priority over the persistent update
+// notice; the update notice reappears once the copy message expires.
+func (m *Model) statusRightMsg() string {
+	if m.copyMsg != "" {
+		return m.copyMsg
+	}
+
+	switch m.updateState {
+	case updateStateAvailable:
+		return " " + m.updateVersion + " available — press u to update"
+	case updateStateUpdating:
+		return " Updating..."
+	case updateStateSucceeded:
+		return " Updated to " + m.updateVersion + " — restart kanba to apply"
+	case updateStateFailed:
+		return " Update failed: " + m.updateErr
+	default:
+		return ""
+	}
 }
 
 func (m *Model) setupSelectionProvider() {

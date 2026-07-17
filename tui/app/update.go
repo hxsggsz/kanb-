@@ -32,6 +32,22 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.visibleLines = m.height - 4
 		return m, nil
 
+	case setting.UpdateCheckMsg:
+		if msg.Available {
+			m.updateState = updateStateAvailable
+			m.updateVersion = msg.Version
+		}
+		return m, nil
+
+	case setting.UpdateInstallMsg:
+		if msg.Err != nil {
+			m.updateState = updateStateFailed
+			m.updateErr = msg.Err.Error()
+		} else {
+			m.updateState = updateStateSucceeded
+		}
+		return m, nil
+
 	case tea.KeyPressMsg:
 		return m.handleKeyPress(msg)
 
@@ -100,6 +116,8 @@ func (m *Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case setting.KeyQuit, setting.KeyQuitAlt:
 		return m, tea.Quit
+	case setting.KeyUpdate:
+		return m.handleUpdateKey()
 	}
 
 	if m.activeMode != nil {
@@ -107,6 +125,17 @@ func (m *Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func (m *Model) handleUpdateKey() (tea.Model, tea.Cmd) {
+	switch m.updateState {
+	case updateStateAvailable, updateStateFailed:
+		m.updateState = updateStateUpdating
+		m.updateErr = ""
+		return m, setting.UpdateInstallCmd()
+	default:
+		return m, nil
+	}
 }
 
 func (m *Model) handleDiffKeys(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {

@@ -6,6 +6,6 @@ import (
 	"kanba/tui/app"
 )
 
-func New(repoPath string, gitArgs []string, cfg *config.Config) tea.Model {
-	return app.New(repoPath, gitArgs, cfg.Theme)
+func New(repoPath string, gitArgs []string, cfg *config.Config, version string) tea.Model {
+	return app.New(repoPath, gitArgs, cfg.Theme, version)
 }

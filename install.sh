@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="hxsggsz/kanb-"
+REPO="hxsggsz/kanba"
 INSTALL_DIR="${KANBA_INSTALL_DIR:-$HOME/.local/bin}"
 
 detect_platform() {

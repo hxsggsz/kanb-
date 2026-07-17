@@ -41,7 +41,7 @@ func RunTUI(gitArgs []string) {
 		fmt.Fprintf(os.Stderr, "warning: config error: %v\n", err)
 	}
 
-	p := tea.NewProgram(tui.New(repoPath, gitArgs, cfg))
+	p := tea.NewProgram(tui.New(repoPath, gitArgs, cfg, Version))
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
