@@ -6,6 +6,27 @@ import (
 	"strings"
 )
 
+const tabWidth = 8
+
+func expandTabs(s string) string {
+	if !strings.Contains(s, "\t") {
+		return s
+	}
+	var b strings.Builder
+	col := 0
+	for _, r := range s {
+		if r == '\t' {
+			spaces := tabWidth - col%tabWidth
+			b.WriteString(strings.Repeat(" ", spaces))
+			col += spaces
+			continue
+		}
+		b.WriteRune(r)
+		col++
+	}
+	return b.String()
+}
+
 type ParseState int
 
 const (
@@ -68,7 +89,7 @@ func (p *ContentLineParser) Parse(line string, cur *FileDiff, _ *ParseState) err
 	}
 	h := &cur.Hunks[len(cur.Hunks)-1]
 	prefix := line[0]
-	content := line[1:]
+	content := expandTabs(line[1:])
 
 	switch prefix {
 	case ' ':

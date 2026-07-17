@@ -39,12 +39,16 @@ func (sh *SyntaxHighlighter) HighlightWithStyle(code, filePath string, baseStyle
 	chromaStyle := styles.Get(theme.ChromaKey)
 	var buf strings.Builder
 	for _, token := range tokens {
+		value := strings.TrimSuffix(token.Value, "\n")
+		if value == "" {
+			continue
+		}
 		entry := chromaStyle.Get(token.Type)
 		tokenStyle := baseStyle
 		if entry.Colour.IsSet() {
 			tokenStyle = tokenStyle.Foreground(lipgloss.Color(entry.Colour.String()))
 		}
-		buf.WriteString(tokenStyle.Render(token.Value))
+		buf.WriteString(tokenStyle.Render(value))
 	}
 	return buf.String()
 }

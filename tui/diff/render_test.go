@@ -35,11 +35,11 @@ func TestRenderAlignedLineAddsBackground(t *testing.T) {
 	fmtr := DefaultFormatters[ln.Kind]
 	result := RenderAlignedLine(fmtr, ln, 80, sh, "main.go", 0, false, false, models.GetTheme("rose-pine"))
 
-	if !strings.Contains(result, "48;2;51;60;72") {
+	if !strings.Contains(result, "48;2;156;207;216") {
 		t.Fatalf("expected added background, got: %q", result)
 	}
 
-	rightPrefix := "\x1b[38;2;156;207;216;48;2;51;60;72m"
+	rightPrefix := "\x1b[38;2;156;207;216;48;2;156;207;216m"
 	if !strings.Contains(result, rightPrefix) {
 		t.Fatalf("expected right panel to contain %s, got: %q", rightPrefix, result)
 	}
@@ -59,11 +59,11 @@ func TestRenderAlignedLineDeletedBackground(t *testing.T) {
 	fmtr := DefaultFormatters[ln.Kind]
 	result := RenderAlignedLine(fmtr, ln, 80, sh, "main.go", 0, false, false, models.GetTheme("rose-pine"))
 
-	if !strings.Contains(result, "48;2;67;41;58") {
+	if !strings.Contains(result, "48;2;235;111;146") {
 		t.Fatalf("expected removed background, got: %q", result)
 	}
 
-	leftPrefix := "\x1b[38;2;235;111;146;48;2;67;41;58m"
+	leftPrefix := "\x1b[38;2;235;111;146;48;2;235;111;146m"
 	if !strings.Contains(result, leftPrefix) {
 		t.Fatalf("expected result to contain %s, got: %q", leftPrefix, result)
 	}
@@ -79,7 +79,7 @@ func TestRenderAlignedLineSinglePanel(t *testing.T) {
 	fmtr := DefaultFormatters[ln.Kind]
 	result := RenderAlignedLine(fmtr, ln, 80, sh, "main.go", 0, true, false, models.GetTheme("rose-pine"))
 
-	if !strings.Contains(result, "48;2;51;60;72") {
+	if !strings.Contains(result, "48;2;156;207;216") {
 		t.Fatal("expected added background")
 	}
 

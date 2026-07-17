@@ -12,7 +12,7 @@ import (
 
 func TestRenderStyledLineAddsBackground(t *testing.T) {
 	result := renderStyledLine("", "hello", 20, git.KindAdded, false, nil, "", models.GetTheme("rose-pine"))
-	if !strings.Contains(result, "48;2;51;60;72") {
+	if !strings.Contains(result, "48;2;156;207;216") {
 		t.Fatalf("expected added background, got: %q", result)
 	}
 	if lipgloss.Width(result) != 20 {
@@ -35,11 +35,11 @@ func TestThemeBgFor(t *testing.T) {
 		expect string
 	}{
 		{git.KindAdded, true, ""},
-		{git.KindAdded, false, "#333c48"},
-		{git.KindDeleted, true, "#43293a"},
+		{git.KindAdded, false, "#9ccfd8"},
+		{git.KindDeleted, true, "#eb6f92"},
 		{git.KindDeleted, false, ""},
-		{git.KindModified, true, "#43293a"},
-		{git.KindModified, false, "#333c48"},
+		{git.KindModified, true, "#eb6f92"},
+		{git.KindModified, false, "#9ccfd8"},
 		{git.KindContext, true, ""},
 		{git.KindContext, false, ""},
 	}
