@@ -355,15 +355,13 @@ func maxFileContentWidth(f git.SideBySideDiff) int {
 	return maxWidth
 }
 
-func (m *Model) helpOverlay(base string, theme models.Theme, sideWidth, panelWidth int) string {
+func (m *Model) helpOverlay(base string, theme models.Theme) string {
 	fg := m.helpContent(theme)
-	fgWidth := lipgloss.Width(fg)
-	xOff := sideWidth + max(0, (panelWidth-fgWidth)/2)
-	return overlay.Composite(fg, base, overlay.Left, overlay.Center, xOff, 0)
+	return overlay.Composite(fg, base, overlay.Center, overlay.Center, 0, 0)
 }
 
 func (m *Model) helpContent(theme models.Theme) string {
-	bg := lipgloss.Color(theme.PanelBg)
+	bg := lipgloss.Color(theme.SurfaceBg)
 	accent := lipgloss.Color(theme.SidebarSelected)
 
 	accentStyle := lipgloss.NewStyle().Foreground(accent).Background(bg)

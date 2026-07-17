@@ -20,15 +20,15 @@ type ModalItem struct {
 }
 
 type Modal struct {
-	Title       string
-	Items       []ModalItem
-	Filtered    []ModalItem
-	FilterQuery string
-	IsFocused   bool
-	Cursor      int
+	Title        string
+	Items        []ModalItem
+	Filtered     []ModalItem
+	FilterQuery  string
+	IsFocused    bool
+	Cursor       int
 	ScrollOffset int
-	Selected    string
-	Active      bool
+	Selected     string
+	Active       bool
 }
 
 func NewModal(title string, items []ModalItem) *Modal {
@@ -299,14 +299,11 @@ func (m *Modal) Render(bgColor, accentColor, fgColor string) string {
 	return style.Render(content)
 }
 
-func (m *Modal) Overlay(base string, bgColor, borderColor, fgColor string, contentLeft, contentWidth int) string {
+func (m *Modal) Overlay(base string, bgColor, borderColor, fgColor string) string {
 	if !m.Active {
 		return base
 	}
 
 	fg := m.Render(bgColor, borderColor, fgColor)
-	fgWidth := lipgloss.Width(fg)
-	xOff := contentLeft + max(0, (contentWidth-fgWidth)/2)
-
-	return overlay.Composite(fg, base, overlay.Left, overlay.Center, xOff, 0)
+	return overlay.Composite(fg, base, overlay.Center, overlay.Center, 0, 0)
 }

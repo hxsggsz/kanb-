@@ -6,10 +6,9 @@ import (
 
 	models "kanba/tui/models"
 
+	"charm.land/lipgloss/v2"
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
-	"github.com/alecthomas/chroma/v2/styles"
-	"charm.land/lipgloss/v2"
 )
 
 type SyntaxHighlighter struct {
@@ -36,17 +35,15 @@ func (sh *SyntaxHighlighter) HighlightWithStyle(code, filePath string, baseStyle
 		return baseStyle.Render(code)
 	}
 
-	chromaStyle := styles.Get(theme.ChromaKey)
 	var buf strings.Builder
 	for _, token := range tokens {
 		value := strings.TrimSuffix(token.Value, "\n")
 		if value == "" {
 			continue
 		}
-		entry := chromaStyle.Get(token.Type)
 		tokenStyle := baseStyle
-		if entry.Colour.IsSet() {
-			tokenStyle = tokenStyle.Foreground(lipgloss.Color(entry.Colour.String()))
+		if c := theme.TokenColors[token.Type]; c != "" {
+			tokenStyle = tokenStyle.Foreground(lipgloss.Color(c))
 		}
 		buf.WriteString(tokenStyle.Render(value))
 	}

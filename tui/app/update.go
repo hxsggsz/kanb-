@@ -4,14 +4,14 @@ import (
 	"log/slog"
 	"time"
 
-	models "kanba/tui/models"
 	"kanba/tui/diff"
+	models "kanba/tui/models"
 	"kanba/tui/selection"
 	"kanba/tui/setting"
 	"kanba/tui/widget"
 
-	"charm.land/lipgloss/v2"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -286,12 +286,10 @@ func (m *Model) handleMouseClick(msg tea.MouseClickMsg) *Model {
 
 	if m.themeModal.Active {
 		theme := m.CurrentTheme()
-		sideWidth := widget.CalculateSideWidth(m.width)
-		panelWidth := max(m.width-sideWidth-panelBorderWidth, panelMinWidth)
 
-		fg := m.themeModal.Render(theme.PanelBg, theme.SidebarSelected, theme.ContextFg)
+		fg := m.themeModal.Render(theme.SurfaceBg, theme.SidebarSelected, theme.ContextFg)
 		fgWidth, fgHeight := lipgloss.Size(fg)
-		modalX := sideWidth + max(0, (panelWidth-fgWidth)/2)
+		modalX := max(0, (m.width-fgWidth)/2)
 		modalY := max(0, (m.height-fgHeight)/2)
 
 		if x >= modalX && x < modalX+fgWidth && y >= modalY && y < modalY+fgHeight {
@@ -312,12 +310,10 @@ func (m *Model) handleMouseClick(msg tea.MouseClickMsg) *Model {
 
 	if m.helpActive {
 		theme := m.CurrentTheme()
-		sideWidth := widget.CalculateSideWidth(m.width)
-		panelWidth := max(m.width-sideWidth-panelBorderWidth, panelMinWidth)
 
 		fg := m.helpContent(theme)
 		fgWidth, fgHeight := lipgloss.Size(fg)
-		modalX := sideWidth + max(0, (panelWidth-fgWidth)/2)
+		modalX := max(0, (m.width-fgWidth)/2)
 		modalY := max(0, m.height/2-fgHeight/2)
 
 		if !(x >= modalX && x < modalX+fgWidth && y >= modalY && y < modalY+fgHeight) {

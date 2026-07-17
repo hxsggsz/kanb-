@@ -44,10 +44,10 @@ func (m *DefaultMode) Render(model *Model) string {
 		NewStyle().
 		Background(lipgloss.Color(theme.PanelBg)).
 		Render(result)
-	result = model.themeModal.Overlay(result, theme.PanelBg, theme.SidebarSelected, theme.ContextFg, sideWidth, panelWidth)
+	result = model.themeModal.Overlay(result, theme.SurfaceBg, theme.SidebarSelected, theme.ContextFg)
 
 	if model.helpActive {
-		result = model.helpOverlay(result, theme, sideWidth, panelWidth)
+		result = model.helpOverlay(result, theme)
 	}
 
 	return result

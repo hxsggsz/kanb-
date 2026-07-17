@@ -33,10 +33,10 @@ func (m *DiffOnlyMode) Render(model *Model) string {
 
 	result := fmt.Sprintf("%s\n%s", statusBar.Render(), content)
 	result = lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg)).Render(result)
-	result = model.themeModal.Overlay(result, theme.PanelBg, theme.SidebarSelected, theme.ContextFg, 0, panelWidth)
+	result = model.themeModal.Overlay(result, theme.SurfaceBg, theme.SidebarSelected, theme.ContextFg)
 
 	if model.helpActive {
-		result = model.helpOverlay(result, theme, 0, panelWidth)
+		result = model.helpOverlay(result, theme)
 	}
 
 	return result

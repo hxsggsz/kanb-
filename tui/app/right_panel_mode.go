@@ -38,10 +38,10 @@ func (m *RightPanelMode) Render(model *Model) string {
 
 	result := fmt.Sprintf("%s\n%s", statusBar.Render(), content)
 	result = lipgloss.NewStyle().Background(lipgloss.Color(theme.PanelBg)).Render(result)
-	result = model.themeModal.Overlay(result, theme.PanelBg, theme.SidebarSelected, theme.ContextFg, 0, panelWidth)
+	result = model.themeModal.Overlay(result, theme.SurfaceBg, theme.SidebarSelected, theme.ContextFg)
 
 	if model.helpActive {
-		result = model.helpOverlay(result, theme, 0, panelWidth)
+		result = model.helpOverlay(result, theme)
 	}
 
 	return result
@@ -166,7 +166,7 @@ func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLe
 		numBg = theme.LineNumberBg
 	}
 
-	baseStyle := lipgloss.NewStyle().Background(lipgloss.Color(bgColor))
+	baseStyle := lipgloss.NewStyle().Background(lipgloss.Color(bgColor)).Foreground(lipgloss.Color(theme.ContextFg))
 
 	numStyle := lipgloss.NewStyle()
 	if fg := theme.LineNumFg(kind, isLeft); fg != "" {

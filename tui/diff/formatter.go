@@ -27,19 +27,19 @@ type LineFormatter interface {
 
 type contextFormatter struct{}
 
-func (contextFormatter) LeftContent(ln git.AlignedLine) string    { return ln.OldContent }
-func (contextFormatter) RightContent(ln git.AlignedLine) string   { return ln.NewContent }
-func (contextFormatter) LeftPrefix(git.AlignedLine) string        { return " " }
-func (contextFormatter) RightPrefix(git.AlignedLine) string       { return " " }
+func (contextFormatter) LeftContent(ln git.AlignedLine) string     { return ln.OldContent }
+func (contextFormatter) RightContent(ln git.AlignedLine) string    { return ln.NewContent }
+func (contextFormatter) LeftPrefix(git.AlignedLine) string         { return " " }
+func (contextFormatter) RightPrefix(git.AlignedLine) string        { return " " }
 func (contextFormatter) LeftStyle(git.AlignedLine) lipgloss.Style  { return emptyStyle }
 func (contextFormatter) RightStyle(git.AlignedLine) lipgloss.Style { return emptyStyle }
 
 type addedFormatter struct{}
 
-func (addedFormatter) LeftContent(git.AlignedLine) string          { return "" }
-func (addedFormatter) RightContent(ln git.AlignedLine) string      { return ln.NewContent }
-func (addedFormatter) LeftPrefix(git.AlignedLine) string           { return " " }
-func (addedFormatter) RightPrefix(git.AlignedLine) string          { return "+" }
+func (addedFormatter) LeftContent(git.AlignedLine) string        { return "" }
+func (addedFormatter) RightContent(ln git.AlignedLine) string    { return ln.NewContent }
+func (addedFormatter) LeftPrefix(git.AlignedLine) string         { return " " }
+func (addedFormatter) RightPrefix(git.AlignedLine) string        { return "+" }
 func (addedFormatter) LeftStyle(git.AlignedLine) lipgloss.Style  { return emptyStyle }
 func (addedFormatter) RightStyle(git.AlignedLine) lipgloss.Style { return emptyStyle }
 
@@ -54,10 +54,10 @@ func (deletedFormatter) RightStyle(git.AlignedLine) lipgloss.Style { return empt
 
 type modifiedFormatter struct{}
 
-func (modifiedFormatter) LeftContent(ln git.AlignedLine) string    { return ln.OldContent }
-func (modifiedFormatter) RightContent(ln git.AlignedLine) string   { return ln.NewContent }
-func (modifiedFormatter) LeftPrefix(git.AlignedLine) string        { return "-" }
-func (modifiedFormatter) RightPrefix(git.AlignedLine) string       { return "+" }
+func (modifiedFormatter) LeftContent(ln git.AlignedLine) string     { return ln.OldContent }
+func (modifiedFormatter) RightContent(ln git.AlignedLine) string    { return ln.NewContent }
+func (modifiedFormatter) LeftPrefix(git.AlignedLine) string         { return "-" }
+func (modifiedFormatter) RightPrefix(git.AlignedLine) string        { return "+" }
 func (modifiedFormatter) LeftStyle(git.AlignedLine) lipgloss.Style  { return emptyStyle }
 func (modifiedFormatter) RightStyle(git.AlignedLine) lipgloss.Style { return emptyStyle }
 
@@ -132,7 +132,7 @@ func renderStyledLine(prefix, content string, width int, kind git.LineKind, isLe
 
 	var contentRendered string
 	if sh != nil {
-		baseStyle := lipgloss.NewStyle().Background(lipgloss.Color(bgColor))
+		baseStyle := lipgloss.NewStyle().Background(lipgloss.Color(bgColor)).Foreground(lipgloss.Color(theme.ContextFg))
 		contentRendered = sh.HighlightWithStyle(content, filePath, baseStyle, theme)
 	} else {
 		contentRendered = content
