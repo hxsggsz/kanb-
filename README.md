@@ -1,5 +1,8 @@
 # kanba
 
+![kanba diff view](docs/images/diff-view.png)
+![kanba theme picker](docs/images/theme-picker.png)
+
 A fast, keyboard-driven terminal UI for browsing `git diff` and `git show` output — with syntax highlighting, mouse-driven text selection, and a live theme switcher.
 
 kanba wraps your existing git plumbing (it shells out to `git diff` / `git show`) and renders the result in a responsive TUI instead of a raw terminal dump: side-by-side old/new panels, a file sidebar, per-file stats, and Chroma-powered syntax highlighting for dozens of languages.
