@@ -217,12 +217,20 @@ func (m *Model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
 
 	switch msg.Button {
 	case tea.MouseWheelUp:
+		if msg.Mod.Contains(tea.ModShift) {
+			m.scroller.ScrollLeftFast()
+			return m, nil
+		}
 		lines := 1
 		if msg.Mod.Contains(tea.ModAlt) {
 			lines = 5
 		}
 		return m, m.scrollUp(lines)
 	case tea.MouseWheelDown:
+		if msg.Mod.Contains(tea.ModShift) {
+			m.scroller.ScrollRightFast()
+			return m, nil
+		}
 		lines := 1
 		if msg.Mod.Contains(tea.ModAlt) {
 			lines = 5
